@@ -46,15 +46,20 @@ VOICE = (
     "('you'). Plain, ESL-accessible English, no idioms. Never use em dashes or en "
     "dashes; use commas, periods, colons or parentheses. Never use the words "
     "transform, unlock, empower, journey, synergy, superpower or elevate, and never "
-    "the phrase 'not X but Y'. No exclamation marks. Reply with JSON only."
+    "the phrase 'not X but Y'. No exclamation marks. "
+    "NEVER state a numeric score, percentage, rank or points total, and never imply "
+    "one: the participant is shown bands, not numbers, so refer to performance only "
+    "by its band word (Foundation, Emerging, Developing, Strong). "
+    "Always address the participant directly as 'you'; never write about them in the "
+    "third person and never use their name. Reply with JSON only."
 )
 
 SCHEMA = (
     "Return ONLY a JSON object, no prose around it, with exactly these keys:\n"
     '{\n'
     '  "tldr_lead": "2 to 3 sentences summarising the day: name the strongest '
-    'dimension and what that looks like, then the growth-edge dimension and the '
-    'single focus there.",\n'
+    'dimension and its band word and what that looks like, then the growth-edge '
+    'dimension and the single focus there. No numbers.",\n'
     '  "strength_head": "a short headline, 4 to 8 words, no period",\n'
     '  "strength_body": "2 sentences on the strength and why it matters to a team",\n'
     '  "growth_head": "a short headline, 4 to 8 words, no period",\n'
@@ -70,9 +75,16 @@ SCHEMA = (
     '  ]\n'
     '}\n'
     "Ground every sentence in the facts provided. Do not invent specific moments, "
-    "games, quotes or events; you only know the scores, bands, archetype and working "
+    "games, quotes or events; you only know the bands, archetype and working "
     "styles, not what the person did minute to minute."
 )
+
+_SCOREY = re.compile(r"\b(?:100|\d{1,2})\b")
+
+def _leaks_number(*vals):
+    """True if any descriptive slot quotes something that reads as a score."""
+    return any(isinstance(v, str) and _SCOREY.search(v) for v in vals)
+
 
 _REQUIRED = ("tldr_lead", "strength_head", "strength_body", "growth_head", "growth_body", "moves")
 
@@ -92,7 +104,9 @@ def _facts(family, scores, archetype, working_style):
     P = nv._pack(family)
     s_dim, g_dim = nv.select(scores)
     labels = {d: P.DIM_NAME[d] for d in nv.DIM_ORDER}
-    lines = ["  - %s: %d out of 100 (%s)" % (labels[d], scores[i], nv.BAND_LABEL[nv.band_of(scores[i])])
+    # Bands only. The numeric scores are deliberately NOT sent: the profile
+    # communicates in bands, and a model that is given a number will quote it.
+    lines = ["  - %s: %s" % (labels[d], nv.BAND_LABEL[nv.band_of(scores[i])])
              for i, d in enumerate(nv.DIM_ORDER)]
     styles = ""
     if working_style and ws_mod is not None:
@@ -105,7 +119,7 @@ def _facts(family, scores, archetype, working_style):
     fs = [
         "Workshop: %s" % workshop,
         "Archetype: The %s" % (archetype.title() if archetype else "Participant"),
-        "Scores by dimension:", "\n".join(lines),
+        "Band by dimension:", "\n".join(lines),
         "Strongest dimension: %s" % labels[s_dim],
         "Growth-edge dimension (lowest): %s" % labels[g_dim],
     ]
@@ -160,6 +174,9 @@ def generate(name, family, archetype, scores, working_style=None):
                       for mv in moves[:3]],
         }
         if not out["tldr_lead"] or any(not mv["head"] or not mv["body"] for mv in out["moves"]):
+            return None
+        if _leaks_number(out["tldr_lead"], out["strength_body"], out["growth_body"]):
+            print("[ai_narrative] numeric score leaked into prose, using deterministic copy", flush=True)
             return None
         return out
     except Exception as ex:
