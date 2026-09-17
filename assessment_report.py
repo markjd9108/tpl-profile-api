@@ -202,6 +202,74 @@ RUBRIC = {
  ]
 }
 
+PLAIN = {"objective": "Goal", "audience": "Audience", "output": "Output shape", "signal": "What to leave out",
+         "completion": "Test for done", "unresolved": "Open questions", "grounding": "What AI can't know",
+         "context": "Background", "role": "Role", "task": "Task", "constraints": "Limits"}
+PLAIN_PROMPT = {"output": "Output shape"}
+
+QUESTIONS = {"scope": "Which ones should I cover, or how many?", "focus": "Which part matters most to you?",
+             "audience": "Who will read this?", "purpose": "What will this be used for?",
+             "sources": "What should I base it on?", "deadline": "When do you need it by?"}
+
+PRIORITY = ["grounding", "unresolved", "objective", "context", "task", "signal", "audience", "completion", "output", "constraints", "role"]
+
+EXAMPLES = {
+ "A": {
+  "message": {
+   "objective": "Draft a one page report on how MoMo, ZaloPay and VNPay win new customers, so our manager is ready for her investor meeting on Friday.",
+   "audience": "It is for our manager only. She knows the market, so skip the basics, and she will use it to answer investor questions.",
+   "output": "One page: a short summary, a table with one row per app, then three takeaways. Keep it high level.",
+   "signal": "Stick to acquisition channels, not brand positioning or funding history. I will handle the Figma licence separately.",
+   "completion": "It is ready if she can explain how each app gets new users after reading it once.",
+   "unresolved": "I have not confirmed which sources she prefers, so flag anything that comes from press reports rather than the apps themselves.",
+  },
+  "message_proceed": {
+   "objective": "Draft a one page report on how the major payment apps in Vietnam attract new customers. I will confirm what it is for before we finalise it.",
+   "signal": "Stick to customer acquisition, not the wider business of each app.",
+   "unresolved": "I have not confirmed which apps, who it is for or the deadline, so treat those as open and check with me before going deep.",
+  },
+  "prompt": {
+   "grounding": "Only include facts you can attribute to a named source, and mark anything you are not sure is current as unverified.",
+   "context": "My manager is meeting an investor and wants to understand how the main payment apps in Vietnam attract new users.",
+   "role": "Act as a fintech market analyst preparing a briefing for someone who will face investor questions.",
+   "task": "Compare how the three largest payment apps in Vietnam acquire customers. Leave out brand, funding and product features.",
+   "output": "One page: a summary paragraph, a table with one row per app, ending with three questions an investor might ask.",
+   "constraints": "Under four hundred words, no funding history, no other apps, and no figures without a source.",
+  },
+ },
+ "B": {
+  "message": {
+   "objective": "Draft an FAQ that answers new overseas staff's first month questions, so they stop sending HR the same ones.",
+   "audience": "It is for four engineers moving from Europe who have not lived in Asia before. They will use it to get set up in their first week.",
+   "output": "About ten short questions and answers, grouped under arriving, getting set up and getting around, in plain language.",
+   "signal": "Cover the first month only. Housing is handled by the relocation agent, so leave that out. I will log the meeting room ticket myself.",
+   "completion": "It is done when someone new could get a SIM, open a bank account and get to the office using only this FAQ.",
+   "unresolved": "I have not confirmed the visa details, so mark those answers as to be checked with HR rather than guessing.",
+  },
+  "message_proceed": {
+   "objective": "Draft an FAQ that helps new overseas staff settle into Ho Chi Minh City. I will confirm the exact purpose with our team lead.",
+   "signal": "Keep it to practical questions about moving and settling in, nothing else for now.",
+   "unresolved": "I do not yet know exactly who it is for, what to cover or when it is due, so treat those as open and I will confirm before you go further.",
+  },
+  "prompt": {
+   "grounding": "Rules on visas, SIM registration and banking change often, so mark anything you cannot confirm from an official source as check before sending.",
+   "context": "These are overseas staff relocating to Ho Chi Minh City for work, most of them arriving in Vietnam for the first time.",
+   "role": "Act as an HR relocation specialist writing for people who are new to Vietnam.",
+   "task": "Write FAQs on settling in during the first month. Leave out company policy and anything about housing contracts.",
+   "output": "Around ten questions, each with a short answer, grouped under clear headings and ending with who to contact for help.",
+   "constraints": "Plain English, no prices that may change, no legal advice, and nothing about company specific policies.",
+  },
+ },
+}
+
+
+def example_for(scenario, sec, k, proceed):
+    lib = EXAMPLES.get(scenario, EXAMPLES["A"])
+    if sec == "message" and proceed and k in lib["message_proceed"]:
+        return lib["message_proceed"][k]
+    return lib[sec].get(k, "")
+
+
 LEVELS = {"message": {c["name"]: c["levels"] for c in RUBRIC["message"]},
           "prompt": {c["name"]: c["levels"] for c in RUBRIC["prompt"]}}
 
@@ -235,9 +303,9 @@ def chip(a, b):
     return '<span class="chg same">Same</span>'
 
 
-def chart(pre, post, two):
-    W, H = 680, 225
-    L, R, T, B = 58, 14, 12, 74
+def chart(pre, post, two, path_changed=False):
+    W, H = 680, 240
+    L, R, T, B = 58, 18, 12, 92
     keys = [("message", k, l) for k, l, _, _ in MSG] + [("prompt", k, l) for k, l, _, _ in PR]
     n = len(keys)
     pw = (W - L - R) / (n - 1)
@@ -251,8 +319,8 @@ def chart(pre, post, two):
     s += f'<line x1="{L-4}" x2="{W-R}" y1="{Y(3):.1f}" y2="{Y(3):.1f}" stroke="#3FB28A" stroke-width="1.8" stroke-dasharray="3 4"/>'
     mid = (Y(0) + Y(3)) / 2
     s += f'<text transform="translate(14,{mid:.1f}) rotate(-90)" text-anchor="middle" font-size="10" fill="#A6B6D6" font-weight="600">Score (0 to 3)</text>'
-    def series(data, color, dash, filled):
-        pts = [(X(i), Y(data[sec][k])) for i, (sec, k, _) in enumerate(keys) if data[sec].get(k) is not None]
+    def series(data, color, dash, filled, skip_message=False):
+        pts = [(X(i), Y(data[sec][k])) for i, (sec, k, _) in enumerate(keys) if data[sec].get(k) is not None and not (skip_message and sec == "message")]
         if not pts:
             return ""
         da = 'stroke-dasharray="6 5"' if dash else ""
@@ -261,11 +329,10 @@ def chart(pre, post, two):
             out += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4.4" fill="{color if filled else "#0E1B3E"}" stroke="{color}" stroke-width="2"/>'
         return out
     if two:
-        s += series(pre, "#A6B6D6", True, False)
+        s += series(pre, "#A6B6D6", True, False, skip_message=path_changed)
     s += series(post, "#4AA1ED", False, True)
-    short = {"Audience and context": "Audience", "Output specification": "Output", "Signal and scope": "Signal", "Completion criteria": "Completion", "Handling the unresolved": "Unresolved"}
     for i, (sec, k, l) in enumerate(keys):
-        s += f'<text transform="translate({X(i):.1f},{H-B+14}) rotate(-35)" text-anchor="end" font-size="9.5" fill="#A6B6D6">{E(short.get(l, l))}</text>'
+        s += f'<text transform="translate({X(i):.1f},{H-B+14}) rotate(-35)" text-anchor="end" font-size="9.5" fill="#A6B6D6">{E(PLAIN.get(k, l))}</text>'
     yb = H - 14
     for a, b, title in ((0, 5, "SHARING INFORMATION"), (6, 11, "PROMPTING AI")):
         x0, x1 = X(a) - 8, X(b) + 8
@@ -281,6 +348,13 @@ def para(t):
 def pre_text(t):
     body = E(t or "").replace(chr(10), "<br>")
     return f'<div class="ans">{body or "<span class=ns>No response</span>"}</div>'
+
+
+def short_output(t, limit=150):
+    words = (t or "").split()
+    if len(words) <= limit:
+        return t or ""
+    return " ".join(words[:limit]) + " ...\n\n(Shortened here. The full text was saved with your answers.)"
 
 
 def asked(x, g):
@@ -346,7 +420,7 @@ h3{{font-family:Barlow;font-weight:700;font-size:12.5pt;margin:0 0 6px}}
 table.sc{{width:100%;border-collapse:collapse;margin:6px 0 4px}} table.sc th{{text-align:left;font-size:7.6pt;letter-spacing:1.2px;text-transform:uppercase;color:var(--fg3);font-weight:600;padding:6px 6px;border-bottom:1px solid var(--line2)}}
 table.sc td{{padding:6px 6px;border-bottom:1px solid var(--line);vertical-align:middle}} table.sc td.c b{{display:block;font-size:9.8pt;font-weight:600}} table.sc td.c small{{color:var(--fg3);font-size:8pt}}
 .dn{{font-size:8pt;color:var(--fg2);margin-left:5px;vertical-align:2px;white-space:nowrap}} table.sc td:not(.c){{white-space:nowrap;width:1%}} .ns{{font-size:8pt;color:var(--fg4);font-style:italic}}
-.chg{{display:inline-block;min-width:44px;text-align:center;font-size:8pt;font-weight:600;border-radius:99px;padding:2px 8px}} .up{{background:rgba(63,178,138,.18);color:#76CDAE}} .down{{background:rgba(201,117,97,.2);color:#E89381}} .same{{background:rgba(170,195,240,.08);color:var(--fg3)}}
+.chg{{display:inline-block;min-width:44px;text-align:center;font-size:8pt;font-weight:600;border-radius:99px;padding:2px 8px}} .up{{background:rgba(74,161,237,.16);color:#8CC4F4}} .down{{background:rgba(170,195,240,.10);color:var(--fg2)}} .same{{background:rgba(170,195,240,.06);color:var(--fg3)}} .nocmp{{background:transparent;color:var(--fg4);font-weight:500;font-style:italic;min-width:0;padding:2px 0}}
 .note{{background:var(--soft);border-radius:10px;padding:8px 12px;margin:6px 0 8px;color:var(--fg2);font-size:9.6pt}} .note b{{color:var(--fg)}}
 .move{{display:grid;grid-template-columns:30px 1fr;gap:10px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:9px;break-inside:avoid}}
 .move .n{{width:28px;height:28px;border-radius:50%;background:var(--sky2);display:flex;align-items:center;justify-content:center;font-family:Barlow;font-weight:900;font-size:12pt}}
@@ -377,7 +451,7 @@ table.sc td.c .why{{color:var(--fg2);font-size:7.9pt;margin-top:1px;line-height:
 tr.lvl td{{padding:0 6px 8px!important;border-bottom:1px solid var(--line)!important}} tr.main td{{border-bottom:0!important}}
 .lvlbox{{display:grid;grid-template-columns:1fr 1fr;gap:8px}} .lvlbox div{{background:var(--soft);border-radius:8px;padding:5px 9px;font-size:8.1pt;line-height:1.35;color:var(--fg2)}} .lvlbox .lk{{display:block;font-size:7pt;letter-spacing:1.1px;text-transform:uppercase;color:var(--fg3);font-weight:600;margin-bottom:1px}}
 .lvlbox .top{{background:rgba(63,178,138,.12);color:#9FDCC4}}
-tbody.keeprow{{break-inside:avoid}}
+tbody.keeprow{{break-inside:avoid}} .exline{{margin-top:5px;background:rgba(74,161,237,.08);border-left:2px solid var(--sky);border-radius:0 8px 8px 0;padding:5px 9px;font-size:8.1pt;color:var(--fg);font-style:italic;line-height:1.35}} .exline .lk{{font-style:normal;display:block;font-size:7pt;letter-spacing:1.1px;text-transform:uppercase;color:var(--fg3);font-weight:600;margin-bottom:1px}} table.det td.qcol{{color:var(--fg);font-style:italic}}
 """
     name = f'{d["firstName"]} {d["lastName"]}'.strip()
     hdr = f"""<div class="hdr"><div class="brand">{mark_svg(34)}<div class="wm"><div class="t">THE</div><div class="n">PERFORMANCE<br>LENS</div></div></div>
@@ -393,20 +467,30 @@ tbody.keeprow{{break-inside:avoid}}
       + stat("Details asked", f"{gcount(pre)} of 6" if two else "", f"{gcount(post)} of 6")
       + stat("Asked about purpose", purp(pre) if two else "", purp(post)) + "</div>")
 
+    proceed_post = post["decision"] == "Okay to proceed"
+    path_changed = two and (pre["decision"] == "Okay to proceed") != proceed_post
     items = assessment_items(post)
-    well = [f'{STEP_NAMES[s]}: {l}' for s, its in (("message", MSG), ("prompt", PR)) for k, l, _, _ in its if post[s].get(k) == 3]
+    well = [f'{STEP_NAMES[s]}: {PLAIN.get(k, l)}' for s, its in (("message", MSG), ("prompt", PR)) for k, l, _, _ in its if post[s].get(k) == 3]
     if asked(post, "purpose"):
         well.insert(0, "Confirming the task: you asked about purpose")
     well_label = "What you did well" + (" in the final exercise" if two else "")
     if not well and items:
         top = max(v for _, v, _ in items)
-        well = [f"{st}: {l}" for l, v, st in items if v == top][:3]
+        well = [f'{STEP_NAMES[s]}: {PLAIN.get(k, l)}' for s, its in (("message", MSG), ("prompt", PR)) for k, l, _, _ in its if post[s].get(k) == top][:3]
         well_label = "Your strongest areas" + (" in the final exercise" if two else "")
-    work = [f'{STEP_NAMES[s]}: {l}' for s, its in (("message", MSG), ("prompt", PR)) for k, l, _, _ in its if post[s].get(k) is not None and post[s].get(k) <= 1]
+    lows = []
+    for k in PRIORITY:
+        for sec in ("prompt", "message"):
+            v = post[sec].get(k)
+            if v is not None and v <= 1:
+                lab = dict((kk, ll) for kk, ll, _, _ in (PR if sec == "prompt" else MSG))[k]
+                lows.append((v, PRIORITY.index(k), f"{STEP_NAMES[sec]}: {PLAIN.get(k, lab)}"))
+    lows.sort()
+    work = [t for _, _, t in lows]
     if not asked(post, "purpose"):
-        work.insert(0, "Confirming the task: purpose was not asked")
-    gi = "".join(f"<li>{E(t)}</li>" for t in well[:5]) or "<li>Nothing reached the rubric maximum yet</li>"
-    wi = "".join(f"<li>{E(t)}</li>" for t in work[:5]) or "<li>No criterion scored below two</li>"
+        work.insert(0, "Confirming the task: ask what the work is for")
+    gi = "".join(f"<li>{E(t)}</li>" for t in well[:3]) or "<li>Nothing reached the rubric maximum yet</li>"
+    wi = "".join(f"<li>{E(t)}</li>" for t in work[:3]) or "<li>No criterion scored below two</li>"
     legend = ('<div class="legend">' + ('<span><i style="border-color:#A6B6D6;border-top-style:dashed"></i>First exercise (before)</span>' if two else "")
       + f'<span><i style="border-color:#4AA1ED"></i>{"Final exercise (after)" if two else "Your exercise"}</span><span><i style="border-color:#3FB28A;border-top-style:dashed;border-top-width:1.8px"></i>Rubric maximum</span></div>')
     sc_label = lambda x: d["scenarios"].get(x["scenario"], {}).get("label", "")
@@ -421,8 +505,8 @@ tbody.keeprow{{break-inside:avoid}}
 <div class="card"><div class="card-h"><div><div class="eyebrow">Your results on one page</div><h2>Snapshot</h2></div><div class="muted">A 60-second read</div></div>
 {stats}
 <h3 style="margin:2px 0 2px">{"Before and after, against the rubric" if two else "Your scores against the rubric"}</h3>{legend}
-<div class="chartwrap">{chart(pre, post, two)}</div>
-{('<p class="muted" style="margin:4px 0 0">Where you went straight into the work, audience, output and completion are not scored, so the line skips them.</p>') if any(x and x["decision"] == "Okay to proceed" for x in (pre, post)) else ""}
+<div class="chartwrap">{chart(pre, post, two, path_changed)}</div>
+{('<p class="muted" style="margin:4px 0 0">' + ("You took a different path in each exercise, so your message was judged on a different basis each time. The first exercise line shows your prompts only, where the comparison is fair. " if path_changed else "") + ("Where you went straight into the work, audience, output shape and test for done are not scored, so the line skips them." if any(x and x["decision"] == "Okay to proceed" for x in (pre, post)) else "") + '</p>') if (path_changed or any(x and x["decision"] == "Okay to proceed" for x in (pre, post))) else ""}
 <div class="lead">{para(P["snapshot"])}</div>
 <div class="did"><div class="mini keep"><div class="eyebrow">{well_label}</div><ul>{gi}</ul></div>
 <div class="mini f keep"><div class="eyebrow">What to work on</div><ul>{wi}</ul></div></div></div>"""
@@ -456,26 +540,35 @@ tbody.keeprow{{break-inside:avoid}}
         for g, l, meaning, why in GAPS:
             fa = (f'<td class="st"><span class="pill {"yes" if asked(pre, g) else "no"}">{"Asked" if asked(pre, g) else "Not asked"}</span></td>') if two else ""
             fb = f'<td class="st"><span class="pill {"yes" if asked(post, g) else "no"}">{"Asked" if asked(post, g) else "Not asked"}</span></td>'
-            r += f"<tr><td><b>{l}</b></td><td>{E(meaning)}</td><td>{E(why)}</td>{fa}{fb}</tr>"
+            r += f'<tr><td><b>{l}</b><br><span class="muted">{E(meaning)}</span></td><td>{E(why)}</td><td class="qcol">&#8220;{E(QUESTIONS[g])}&#8221;</td>{fa}{fb}</tr>'
         return r
-    gap_head = "<th>Detail</th><th>What it means</th><th>Why it matters</th>" + ("<th>First</th><th>Final</th>" if two else "<th>You</th>")
+    gap_head = "<th>Detail</th><th>Why it matters</th><th>A question you could ask</th>" + ("<th>First</th><th>Final</th>" if two else "<th>You</th>")
 
     def crit_rows(sec, items):
         r = ""
         for k, l, meaning, why in items:
             a = pre[sec].get(k) if two else None
             b = post[sec].get(k)
-            cells = (f"<td>{dots(a)}</td><td>{dots(b)}</td><td>{chip(a, b)}</td>" if two else f"<td>{dots(b)}</td>")
-            levels = LEVELS[sec][l]
-            if b is None:
-                lvl = '<div><span class="lk">Your final response</span>Not scored, because you went straight into the work and never received the missing details.</div><div><span class="lk">Rubric maximum</span>' + E(levels[3]) + "</div>"
-            elif b >= 3:
-                lvl = f'<div class="top"><span class="lk">Your final response</span>{E(levels[3])}</div><div class="top"><span class="lk">Rubric maximum</span>You reached it.</div>'
+            if two:
+                chg = '<span class="chg nocmp">Different path</span>' if (sec == "message" and path_changed and a is not None and b is not None) else chip(a, b)
+                cells = f"<td>{dots(a)}</td><td>{dots(b)}</td><td>{chg}</td>"
             else:
-                lvl = f'<div><span class="lk">Your final response</span>{E(levels[b])}</div><div><span class="lk">Next level up</span>{E(levels[b + 1])}</div>'
+                cells = f"<td>{dots(b)}</td>"
+            levels = LEVELS[sec][l]
+            ex = example_for(post["scenario"], sec, k, proceed_post)
+            ex_html = f'<div class="exline"><span class="lk">For example, in this task</span>&#8220;{E(ex)}&#8221;</div>' if ex else ""
+            if b is None:
+                lvl = ('<div><span class="lk">Your final response</span>Not scored, because you went straight into the work and did not receive these details.</div>'
+                       f'<div><span class="lk">What a 3 looks like</span>{E(levels[3])}</div>')
+                ex_html = ""
+            elif b >= 3:
+                lvl = f'<div class="top"><span class="lk">Your final response</span>{E(levels[3])}</div><div class="top"><span class="lk">What a 3 looks like</span>You reached the rubric maximum here.</div>'
+                ex_html = ""
+            else:
+                lvl = f'<div><span class="lk">Your final response</span>{E(levels[b])}</div><div><span class="lk">What a 3 looks like</span>{E(levels[3])}</div>'
             span = 4 if two else 2
             r += (f'<tbody class="keeprow"><tr class="main"><td class="c"><b>{E(l)}</b><small>{E(meaning)}</small><div class="why"><i>Why it matters:</i> {E(why)}</div></td>{cells}</tr>'
-                  f'<tr class="lvl"><td colspan="{span}"><div class="lvlbox">{lvl}</div></td></tr></tbody>')
+                  f'<tr class="lvl"><td colspan="{span}"><div class="lvlbox">{lvl}</div>{ex_html}</td></tr></tbody>')
         return r
     cols = "<th>First</th><th>Final</th><th>Change</th>" if two else "<th>Your score</th>"
     page3 = f"""<div class="pb"></div>{hdr}
@@ -485,6 +578,7 @@ tbody.keeprow{{break-inside:avoid}}
 <div class="pb"></div>{hdr}
 <div class="sec" style="margin-top:14px"><div class="num">02</div><h2>Sharing information</h2></div>
 <div class="card" style="margin-top:10px">{para(P["handover"])}
+{('<div class="note"><b>Different paths.</b> You asked questions first in one exercise and went straight into the work in the other, so your message was judged on a different basis each time. Compare the prompting scores instead, which are judged the same way on both paths.</div>') if path_changed else ""}
 {('<div class="note"><b>Scorer&#39;s note.</b> ' + E(post["message"].get("note", "")) + "</div>") if post["message"].get("note") else ""}
 <table class="sc"><thead><tr><th>Criterion</th>{cols}</tr></thead>{crit_rows("message", MSG)}</table></div>"""
     page4 = f"""<div class="pb"></div>{hdr}
@@ -516,12 +610,12 @@ tbody.keeprow{{break-inside:avoid}}
           "rec": f'<div class="ans req">{E(rec)}</div>' if clar else '<div class="ans"><span class="ns">No reply received</span></div>',
           "msg": pre_text(x["messageText"]),
           "pr": "".join(f'<div class="ans" style="margin-bottom:5px">{E(p)}</div>' for p in prompts) + f'<div class="muted" style="margin-top:3px">Tool used: {E(x["aiTool"])}</div>',
-          "rep": pre_text(x["report"]),
+          "rep": pre_text(short_output(x["report"])),
           "label": sc["label"]}
     A = answers(pre) if two else None
     Bx = answers(post)
     rows_def = [("The request you received", "req"), ("Confirming the task: your decision", "dec"), ("Your reply", "reply"), ("The reply you received", "rec"),
-                ("Sharing information: your message to your colleague", "msg"), ("Prompting AI: your prompts", "pr"), ("What you produced", "rep")]
+                ("Sharing information: your message to your colleague", "msg"), ("Prompting AI: your prompts", "pr"), ("What the AI tool produced (first part)", "rep")]
     if two:
         rowsA = "".join(f'<tr><td class="half"><div class="eyebrow ql2">{t}</div>{A[k]}</td><td class="half"><div class="eyebrow ql2">&nbsp;</div>{Bx[k]}</td></tr>' for t, k in rows_def)
         ansblock = f'<table class="cmp"><thead><tr><th>First exercise<small>{E(A["label"])}</small></th><th>Final exercise<small>{E(Bx["label"])}</small></th></tr></thead><tbody>{rowsA}</tbody></table>'
@@ -565,15 +659,22 @@ def _side(f, p):
     }
 
 
+def _path_changed(pre, post):
+    return bool(pre) and (pre["decision"] == "Okay to proceed") != (post["decision"] == "Okay to proceed")
+
+
 def _changes(pre, post):
     out = []
+    skip_msg = _path_changed(pre, post)
     for sec, items in (("message", MSG), ("prompt", PR)):
+        if sec == "message" and skip_msg:
+            continue
         for k, label, _, _ in items:
             a, b = pre[sec].get(k), post[sec].get(k)
             if a is None or b is None:
                 continue
-            word = "rose" if b > a else ("fell" if b < a else "held level")
-            out.append(f"{STEP_NAMES[sec]}, {label}: {word}")
+            word = "higher in the final exercise" if b > a else ("lower in the final exercise" if b < a else "the same in both")
+            out.append(f"{STEP_NAMES[sec]}, {PLAIN.get(k, label).lower()}: {word}")
     return out
 
 
@@ -595,7 +696,9 @@ def _facts(d):
         t += side_txt(d["pre"], "FIRST EXERCISE (BEFORE THE WORKSHOP)") + "\n\n"
     t += side_txt(d["post"], "FINAL EXERCISE (AFTER THE WORKSHOP)" if two else "THE EXERCISE")
     if two:
-        t += "\n\nCRITERION CHANGES FROM FIRST TO FINAL, USE EXACTLY:\n" + "\n".join(_changes(d["pre"], d["post"]))
+        if _path_changed(d["pre"], d["post"]):
+            t += "\n\nPATH CHANGED: they asked questions first in one exercise and went straight into the work in the other, so the message was judged on a different basis each time. Do not compare message scores between exercises. Compare prompting only, and mention the change of path itself."
+        t += "\n\nCRITERION CHANGES FROM FIRST TO FINAL, USE EXACTLY:\n" + ("\n".join(_changes(d["pre"], d["post"])) or "none comparable")
     return t
 
 
@@ -605,7 +708,7 @@ PROSE_SYSTEM = (
     "Write to them as you, in plain, warm, professional English. Be specific about what they actually wrote. "
     "Give credit only where the scores support it, and name real gaps clearly and kindly. "
     "Do not write any digits or scores; scores appear in tables added separately. "
-    "Describe change between exercises only as the criterion changes list states it. "
+    "Describe change between exercises only as the criterion changes list states it, in a constructive tone, and never as a list. "
     "Make no claim about the assessment itself. Never use em dashes. Reply with a single JSON object and nothing else.")
 
 PROSE_USER = (
@@ -615,8 +718,8 @@ PROSE_USER = (
     "handover: two or three sentences on sharing information, pointing to something specific in their message. If they went straight into the work, explain their message was judged on objective, signal and scope, and how it handled what was still unknown.\n"
     "directing_ai: two or three sentences on prompting AI, starting with grounding and pointing to something specific in their prompts.\n"
     "why: two or three sentences on why confirming the task, sharing information and prompting AI are one connected skill, tied to what they did.\n"
-    "before_after: if there are two exercises, one paragraph describing how their approach changed, using the criterion changes list exactly; if there is one exercise, an empty string.\n"
-    "moves: exactly two objects, each with title (a short imperative), body (two sentences, based on their weakest areas in the most recent exercise) and try (one example line they could write or say, in quotation marks).\n"
+    "before_after: if there are two exercises, one short paragraph in natural sentences on how their approach changed, grouping similar changes together and using the criterion changes list exactly; if there is one exercise, an empty string.\n"
+    "moves: exactly two objects, each with title (a short imperative), body (two sentences, based on two different weak areas in the most recent exercise, with purpose first if they did not ask about it) and try (one example line they could write or say for that task, in quotation marks, different for each move).\n"
     "closing: one encouraging sentence.\n\n"
     'Return exactly: {"snapshot":"","clarity":"","handover":"","directing_ai":"","why":"","before_after":"","moves":[{"title":"","body":"","try":""},{"title":"","body":"","try":""}],"closing":""}\n\nDATA\n')
 
@@ -655,13 +758,14 @@ def _ai_prose(d):
     two = d["pre"] is not None
     messages = [{"role": "user", "content": PROSE_USER + _facts(d)}]
     reason = "unknown"
-    for attempt in range(3):
+    for attempt in range(2):
         try:
-            body = json.dumps({"model": os.environ.get("ASSESSMENT_MODEL", "claude-sonnet-5"), "max_tokens": 3000,
+            body = json.dumps({"model": os.environ.get("ASSESSMENT_MODEL", "claude-sonnet-5"), "max_tokens": 2500,
+                               "temperature": 0.3, "thinking": {"type": "disabled"},
                                "system": PROSE_SYSTEM, "messages": messages}).encode()
             req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=body, headers={
                 "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"})
-            with urllib.request.urlopen(req, timeout=90) as r:
+            with urllib.request.urlopen(req, timeout=75) as r:
                 out = json.loads(r.read().decode())
             txt = "".join(b.get("text", "") for b in out.get("content", []) if b.get("type") == "text").strip()
             m = re.search(r"\{.*\}", txt, re.S)
@@ -698,24 +802,50 @@ def _ai_prose(d):
 
 def _fallback_prose(d):
     post, pre = d["post"], d["pre"]
+    went = post["decision"] == "Okay to proceed"
     asked_now = [l.lower() for g, l, _, _ in GAPS if asked(post, g)]
     open_now = [l.lower() for g, l, _, _ in GAPS if not asked(post, g)]
-    went = post["decision"] == "Okay to proceed"
-    low = sorted([(v, l, s) for l, v, s in assessment_items(post)])[:2]
+    def join(xs):
+        return xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
+    lows = sorted([(post[sec][k], PRIORITY.index(k), sec, k) for sec, its in (("message", MSG), ("prompt", PR)) for k, _, _, _ in its if post[sec].get(k) is not None and k in PRIORITY])
+    moves = []
+    if not asked(post, "purpose"):
+        moves.append({"title": "Ask what the work is for", "body": "Purpose is the one question that makes every other detail easier to answer. Asking it first tells you how deep to go, who to write for and what to leave out.", "try": "\u201c" + QUESTIONS["purpose"] + "\u201d"})
+    for v, _, sec, k in lows:
+        if len(moves) >= 2:
+            break
+        label = PLAIN.get(k, k).lower()
+        moves.append({"title": f"Strengthen {label}" if sec == "message" else f"Give the AI tool clearer {label}" if k not in ("grounding",) else "Tell the AI tool what it cannot know",
+                      "body": f"This was one of the areas with the most room to grow in {'your message' if sec == 'message' else 'your prompts'}. The line below shows what a stronger version could look like in this task.",
+                      "try": "\u201c" + example_for(post["scenario"], sec, k, went) + "\u201d"})
+    while len(moves) < 2:
+        moves.append({"title": "Name what is still open", "body": "Saying what you do not know yet protects the work from guesses.", "try": "\u201cI have not confirmed this yet, so please treat it as open.\u201d"})
+    changes = _changes(pre, post) if pre else []
+    before_after = ""
+    if pre:
+        higher = [c.split(":")[0] for c in changes if "higher" in c]
+        lower = [c.split(":")[0] for c in changes if "lower" in c]
+        parts = []
+        if _path_changed(pre, post):
+            parts.append("You took a different path in each exercise, asking questions first in one and going straight into the work in the other, so your message was judged differently each time.")
+        if higher:
+            parts.append("In the final exercise you were stronger on " + join([h.split(", ")[1] for h in higher]) + ".")
+        if lower:
+            parts.append("There is room to build back up on " + join([x.split(", ")[1] for x in lower]) + ".")
+        before_after = " ".join(parts)
     return {
-        "snapshot": ("In the final exercise you went straight into the work without confirming the task." if went else
-                     "In the final exercise you confirmed the task by writing back with questions before starting.") +
-                    " The sections that follow show, criterion by criterion, where your message and your prompts sit on the rubric and what the next level looks like.",
-        "clarity": ("You did not ask about any of the six missing details." if not asked_now else "You asked about " + ", ".join(asked_now) + ".") +
-                   (("\n\nThe details left open were " + ", ".join(open_now) + ". Each one is a guess that someone has to make later in the work.") if open_now else ""),
-        "handover": "The table below shows how your message to your colleague compares with each rubric criterion, with the level you reached and the level above it.",
-        "directing_ai": "The table below shows how your prompts compare with each rubric criterion, starting with grounding, the most important of the six.",
-        "why": "Confirming the task, sharing information and prompting AI are one connected skill: each depends on knowing what the work is for, who it is for, what is in and out, and what still needs checking.",
-        "before_after": ("Compared with your first exercise: " + "; ".join(_changes(pre, post)) + ".") if pre else "",
-        "moves": ([{"title": f"Strengthen {l.lower()}", "body": f"This was one of your lower areas in {s.lower()}. The next level up in the table above shows exactly what to add.",
-                    "try": '"Before I start, here is what I understand and what I still need to confirm."'} for v, l, s in low] +
-                  [{"title": "Ask about purpose first", "body": "Purpose makes every other detail answerable.", "try": '"What will this be used for?"'}] * 2)[:2],
-        "closing": "Use these moves on your next real request, whether it comes from a manager or goes to an AI tool.",
+        "snapshot": (("In the final exercise you went straight into the work without asking any questions first, so the details that shape the task were left for others to guess. " if went else
+                      "In the final exercise you wrote back with questions before starting. ")
+                     + "The pages that follow show, for each part of your message and your prompts, where you landed and what a stronger version looks like."),
+        "clarity": ("You went straight into the work, so none of the six missing details were confirmed." if not asked_now else "You asked about " + join(asked_now) + ".")
+                   + (("\n\nThe details left open were " + join(open_now) + ". Each one is something your colleague or the AI tool would have to guess, and purpose matters most because it shapes all the others.") if open_now else ""),
+        "handover": ("Because you went straight into the work, your message was judged on its goal, what it leaves out and how it handles what is still unknown. " if went else "")
+                    + "Each row below shows where your message landed, what a 3 looks like, and an example of that in this task.",
+        "directing_ai": "Grounding comes first because AI tools answer confidently even when they are guessing. Each row below shows where your prompts landed and an example of a stronger version for this task.",
+        "why": "Confirming the task, sharing information and prompting AI rely on the same thing: knowing what the work is for, who it is for, what is in and out, and what still needs checking. When the first step is skipped, the gaps carry through to your colleague and to the AI tool.",
+        "before_after": before_after,
+        "moves": moves[:2],
+        "closing": "Try these two moves on your next real request, whether it comes from a manager or goes to an AI tool.",
     }
 
 
