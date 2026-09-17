@@ -75,9 +75,10 @@ def chart(pre, post, two):
             if i==6 and cur: segs.append(cur); cur=[]
             cur.append((X(i),Y(int(v))))
         if cur: segs.append(cur)
+        dash_attr='stroke-dasharray="6 5"' if dash else ""
         for sg in segs:
             pts=" ".join(f"{x:.1f},{y:.1f}" for x,y in sg)
-            out+=f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" {"stroke-dasharray=\"6 5\"" if dash else ""}/>'
+            out+=f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" {dash_attr}/>'
             for x,y in sg:
                 out+=f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4.6" fill="{color if filled else "#0A1530"}" stroke="{color}" stroke-width="2"/>'
         return out
