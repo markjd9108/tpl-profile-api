@@ -761,7 +761,7 @@ def _ai_prose(d):
     for attempt in range(2):
         try:
             body = json.dumps({"model": os.environ.get("ASSESSMENT_MODEL", "claude-sonnet-5"), "max_tokens": 2500,
-                               "temperature": 0.3, "thinking": {"type": "disabled"},
+                               "thinking": {"type": "disabled"},
                                "system": PROSE_SYSTEM, "messages": messages}).encode()
             req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=body, headers={
                 "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"})
