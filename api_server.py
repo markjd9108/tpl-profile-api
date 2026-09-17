@@ -247,11 +247,11 @@ class ComputeAveragesRequest(BaseModel):
     scores: List[ScoreEntry]
 
 # ── App ────────────────────────────────────────────────────────────────────────
-app = FastAPI(title="TEW Profile API", version="2.3.0")
+app = FastAPI(title="TEW Profile API", version="2.8.0")
 
 @app.get("/")
 def health():
-    return {"status": "ok", "version": "2.7.2",
+    return {"status": "ok", "version": "2.8.0",
             "archetypes": list(ARCHETYPE_FILES),
             "endpoints": ["/generate", "/generate-cohort", "/generate-manager-report",
                           "/generate-leader-report", "/compute-averages"]}
@@ -406,6 +406,13 @@ try:
     app.include_router(capture_router)
 except Exception as _cap_err:
     print("[capture_route] not loaded:", _cap_err)
+
+# Soft Skills + AI Communication assessment report (PDF)
+try:
+    from assessment_route import assessment_router
+    app.include_router(assessment_router)
+except Exception as _asr_err:
+    print("[assessment_route] not loaded:", _asr_err)
 
 
 @app.post("/generate-hosted")
