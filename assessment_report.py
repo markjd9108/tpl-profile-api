@@ -414,8 +414,8 @@ WELL2 = {("message", "objective"): "Your message stated the outcome",
 
 def well_and_focus(post):
     well, lows = [], []
-    if asked(post, "purpose"):
-        well.append((0, "You asked what the work is for"))
+    if post["decision"] == "Craft a response":
+        well.append((0, "You confirmed the details of the task before you started"))
     for sec, its in (("prompt", PR), ("message", MSG)):
         for k, _, _, _ in its:
             v = post[sec].get(k)
@@ -431,8 +431,10 @@ def well_and_focus(post):
         well += [(50 + p, t) for p, t in twos]
     well = [t for _, t in sorted(well)][:2]
     focus = []
-    if not asked(post, "purpose"):
-        focus.append("Ask what the work is for before you start")
+    if post["decision"] == "Okay to proceed":
+        focus.append("Confirm the details of the task before you start")
+    elif not asked(post, "purpose"):
+        focus.append("Confirm what the work is for before you start")
     focus += [t for _, _, t in sorted(lows)]
     if len(focus) < 2:
         twos = sorted([(PRIORITY.index(k) if k in PRIORITY else 99, FOCUS[(sec, k)]) for sec, its in (("prompt", PR), ("message", MSG)) for k, _, _, _ in its if post[sec].get(k) == 2])
@@ -527,21 +529,26 @@ tbody.keeprow{{break-inside:avoid}} .exline{{margin-top:5px;background:rgba(74,1
     gcount = lambda x: len([g for g in (x.get("gapsAsked") or "").split(",") if g.strip()])
     askedq = lambda x: "Yes" if x["decision"] == "Craft a response" else "No"
     def tile(label, a, b):
-        inner = (f'<span class="b">{E(a)}</span><span class="arr">&#8594;</span><span class="a">{E(b)}</span>') if two else f'<span class="a">{E(b)}</span>'
-        return f'<div class="stat"><div class="eyebrow">{label}</div><div class="row">{inner}</div></div>'
+        if two:
+            inner = (f'<div class="tv"><span class="b">{E(a)}</span><small>Pre-assessment</small></div>'
+                     f'<span class="arr">&#8594;</span>'
+                     f'<div class="tv"><span class="a">{E(b)}</span><small>Final assessment</small></div>')
+        else:
+            inner = f'<div class="tv"><span class="a">{E(b)}</span></div>'
+        return f'<div class="stat"><div class="eyebrow">{label}</div><div class="row tvrow">{inner}</div></div>'
     tiles = ('<div class="tiles2">'
-      + tile("Asked questions before starting?", askedq(pre) if two else "", askedq(post))
+      + tile("Confirmed details before starting?", askedq(pre) if two else "", askedq(post))
       + tile("Missing details confirmed", f"{gcount(pre)} of 6" if two else "", f"{gcount(post)} of 6") + "</div>")
     proceed_post = post["decision"] == "Okay to proceed"
     path_changed = two and (pre["decision"] == "Okay to proceed") != proceed_post
     well, focus = well_and_focus(post)
     gi = "".join(f"<li>{E(t)}</li>" for t in well) or "<li>You completed the exercise</li>"
     fi = "".join(f"<li>{E(t)}</li>" for t in focus)
-    legend = ('<div class="legend">' + ('<span><i style="border-color:#A6B6D6;border-top-style:dashed"></i>Before</span>' if two else "")
-      + f'<span><i style="border-color:#4AA1ED"></i>{"After" if two else "Your scores"}</span><span><i style="border-color:#3FB28A;border-top-style:dashed;border-top-width:1.8px"></i>Top score (3)</span></div>')
+    legend = ('<div class="legend">' + ('<span><i style="border-color:#A6B6D6;border-top-style:dashed"></i>Pre-assessment (before)</span>' if two else "")
+      + f'<span><i style="border-color:#4AA1ED"></i>{"Final assessment (after)" if two else "Your scores"}</span><span><i style="border-color:#3FB28A;border-top-style:dashed;border-top-width:1.8px"></i>Top score (3)</span></div>')
     caption = ""
     if path_changed:
-        caption = "You took a different path each time, so the before line shows your AI prompts only."
+        caption = "You took a different path in each assessment, so the pre-assessment line shows your AI prompts only."
     elif proceed_post:
         caption = "Some message scores are skipped because you went straight into the work."
     sc_label = lambda x: d["scenarios"].get(x["scenario"], {}).get("label", "")
@@ -550,11 +557,11 @@ tbody.keeprow{{break-inside:avoid}} .exline{{margin-top:5px;background:rgba(74,1
 <div class="hero"><div class="eyebrow">Your assessment report</div><h1>Soft Skills + <em>AI Communication</em></h1>
 <div class="metarow"><div><div class="eyebrow">Participant</div><div class="v">{E(name)}</div></div>
 <div><div class="eyebrow">Date</div><div class="v">{E(d["workshopDate"])}</div></div>
-<div><div class="eyebrow">{"Before" if two else "Exercise"}</div><div class="v">{E(sc_label(pre) if two else sc_label(post))}</div></div>
-<div><div class="eyebrow">{"After" if two else ""}</div><div class="v">{E(sc_label(post)) if two else ""}</div></div></div></div>
+<div><div class="eyebrow">{"Pre-assessment" if two else "Exercise"}</div><div class="v">{E(sc_label(pre) if two else sc_label(post))}</div></div>
+<div><div class="eyebrow">{"Final assessment" if two else ""}</div><div class="v">{E(sc_label(post)) if two else ""}</div></div></div></div>
 <div class="card"><div class="card-h"><div><div class="eyebrow">Your results</div><h2>Summary</h2></div></div>
 {tiles}
-<h3 style="margin:2px 0 2px">{"Your scores, before and after" if two else "Your scores"}</h3>{legend}
+<h3 style="margin:2px 0 2px">{"Your scores, before and after the workshop" if two else "Your scores"}</h3>{legend}
 <div class="chartwrap">{chart(pre, post, two, path_changed)}</div>
 {('<p class="muted" style="margin:4px 0 0">' + caption + '</p>') if caption else ""}
 <div class="oneline">{E(P["snapshot"])}</div>
@@ -568,23 +575,24 @@ tbody.keeprow{{break-inside:avoid}} .exline{{margin-top:5px;background:rgba(74,1
             fb = f'<td class="st"><span class="pill {"yes" if asked(post, g) else "no"}">{"Asked" if asked(post, g) else "Not asked"}</span></td>'
             r += f'<tr><td><b>{l}</b></td><td class="qq">&#8220;{E(QUESTIONS[g])}&#8221;</td>{fa}{fb}</tr>'
         return r
-    gap_head = "<th>Missing detail</th><th>A question you could ask</th>" + ("<th>Before</th><th>After</th>" if two else "<th>You</th>")
+    gap_head = "<th>Missing detail</th><th>A question you could ask</th>" + ("<th>Pre-assessment</th><th>Final assessment</th>" if two else "<th>You</th>")
 
     page2 = f"""<div class="pb"></div>{hdr}
 <div class="sec" style="margin-top:14px"><div class="num">HOW THIS WORKS</div><h2>Three skills, scored against a rubric</h2></div>
 <div class="card keep" style="margin-top:10px">
 <div class="aboutgrid">
-<div><b><span class="sn">1</span>Confirming the task</b>Asking for the details a vague request leaves out.</div>
-<div><b><span class="sn">2</span>Sharing information</b>Briefing a colleague so they can do the work.</div>
-<div><b><span class="sn">3</span>Prompting AI</b>Giving an AI tool what it needs to draft it well.</div>
+<div><b><span class="sn">1</span>Confirming the task</b>Checking your understanding and confirming the details before you start.<span class="fw">The Clarity Loop</span></div>
+<div><b><span class="sn">2</span>Sharing information</b>Briefing a colleague clearly, with the specific details they need.<span class="fw">The Clarity Loop</span></div>
+<div><b><span class="sn">3</span>Prompting AI</b>Giving the AI tool its role, context and task.<span class="fw">RCT: Role, Context, Task</span></div>
 </div>
 <ul class="notes3">
 <li>Each part of your message and prompts is scored from 0 to 3. The full rubric is at the back.</li>
+<li>You completed a pre-assessment before the workshop and a final assessment after it, so you can see what changed.</li>
 <li>If you went straight into the work, some message scores are skipped, because you never received those details.</li>
 <li>There is no overall score. Each line shows one specific thing to practise.</li>
 </ul></div>
 <div class="sec"><div class="num">01</div><h2>Confirming the task</h2></div>
-<div class="card" style="margin-top:10px"><p>{E(P["clarity"])}</p>
+<div class="card" style="margin-top:10px"><div class="fwline">The Clarity Loop: check your understanding and confirm the details before you start.</div><p>{E(P["clarity"])}</p>
 <table class="q"><thead><tr>{gap_head}</tr></thead><tbody>{gap_rows()}</tbody></table></div>"""
 
     def crit_rows(sec, items):
@@ -609,17 +617,17 @@ tbody.keeprow{{break-inside:avoid}} .exline{{margin-top:5px;background:rgba(74,1
             r += (f'<tbody class="keeprow"><tr class="main"><td class="c"><b>{E(PLAIN.get(k, l))}</b><small>{E(meaning)}</small></td>{cells}</tr>'
                   f'<tr class="lvl"><td colspan="{span}">{reach}</td></tr></tbody>')
         return r
-    cols = "<th>Before</th><th>After</th><th>Change</th>" if two else "<th>Your score</th>"
+    cols = "<th>Pre-assessment</th><th>Final assessment</th><th>Change</th>" if two else "<th>Your score</th>"
     page3 = f"""<div class="pb"></div>{hdr}
 <div class="sec" style="margin-top:14px"><div class="num">02</div><h2>Sharing information</h2></div>
-<div class="card" style="margin-top:10px"><p>{E(P["handover"])}</p>
+<div class="card" style="margin-top:10px"><div class="fwline">The Clarity Loop: state clearly what you need, with the specific details.</div><p>{E(P["handover"])}</p>
 <table class="sc"><thead><tr><th>Your message</th>{cols}</tr></thead>{crit_rows("message", MSG)}</table></div>"""
     page4 = f"""<div class="pb"></div>{hdr}
 <div class="sec" style="margin-top:14px"><div class="num">03</div><h2>Prompting AI</h2></div>
-<div class="card" style="margin-top:10px"><p>{E(P["directing_ai"])}</p>
+<div class="card" style="margin-top:10px"><div class="fwline">RCT: give the AI tool its Role, the Context it needs, and a clear Task.</div><p>{E(P["directing_ai"])}</p>
 <table class="sc"><thead><tr><th>Your prompts</th>{cols}</tr></thead>{crit_rows("prompt", PR)}</table></div>"""
     moves = "".join(f'<div class="move"><div class="n">{i+1}</div><div><h3>{E(m.get("title",""))}</h3><p>{E(m.get("body",""))}</p><div class="try">{E(m.get("try",""))}</div></div></div>' for i, m in enumerate(P["moves"][:2]))
-    ba = (f'<div class="card keep"><div class="eyebrow">Before and after</div><p style="margin:4px 0 0">{E(P["before_after"])}</p></div>') if two and P.get("before_after") else ""
+    ba = (f'<div class="card keep"><div class="eyebrow">From pre-assessment to final assessment</div><p style="margin:4px 0 0">{E(P["before_after"])}</p></div>') if two and P.get("before_after") else ""
     page5 = f"""<div class="keep"><div class="sec" style="margin-top:4px"><div class="num">04</div><h2>Your next two moves</h2></div>
 <div style="margin-top:10px">{moves}</div>
 {ba}</div>"""
@@ -647,7 +655,7 @@ tbody.keeprow{{break-inside:avoid}} .exline{{margin-top:5px;background:rgba(74,1
                 ("Your message to your colleague", "msg"), ("Your prompts", "pr"), ("What the AI tool produced (first part)", "rep")]
     if two:
         rowsA = "".join(f'<tr><td class="half"><div class="eyebrow ql2">{t}</div>{A[k]}</td><td class="half"><div class="eyebrow ql2">&nbsp;</div>{Bx[k]}</td></tr>' for t, k in rows_def)
-        ansblock = f'<table class="cmp"><thead><tr><th>Before<small>{E(A["label"])}</small></th><th>After<small>{E(Bx["label"])}</small></th></tr></thead><tbody>{rowsA}</tbody></table>'
+        ansblock = f'<table class="cmp"><thead><tr><th>Pre-assessment<small>{E(A["label"])}</small></th><th>Final assessment<small>{E(Bx["label"])}</small></th></tr></thead><tbody>{rowsA}</tbody></table>'
     else:
         ansblock = "".join(f'<div class="q eyebrow">{t}</div>{Bx[k]}' for t, k in rows_def)
     page6 = f"""<div class="pb"></div>{hdr}
@@ -675,13 +683,16 @@ EXTRA_CSS = """
 .did2 .mini li:before{content:"";position:absolute;left:0;top:10px;width:9px;height:9px;border-radius:50%;background:#4AA1ED} .did2 .mini.f li:before{background:#D9A04E}
 .aboutgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:2px}
 .aboutgrid div{background:#0E1B3E;border-radius:10px;padding:9px 11px;font-size:9pt;color:#A6B6D6;line-height:1.4} .aboutgrid b{display:block;color:#ECF1FB;font-size:10pt;margin-bottom:3px}
+.aboutgrid .fw{display:table;margin-top:6px;font-size:7.4pt;letter-spacing:.8px;text-transform:uppercase;font-weight:600;color:#8CC4F4;background:rgba(74,161,237,.14);border-radius:99px;padding:2px 8px}
+.fwline{font-size:8.4pt;color:#8CC4F4;font-weight:600;margin:0 0 6px}
+.tvrow{align-items:flex-start!important;gap:12px!important} .tvrow .arr{line-height:1;margin-top:4px} .tv{display:flex;flex-direction:column} .tv small{font-size:7pt;letter-spacing:.8px;text-transform:uppercase;color:#8FA2C4;margin-top:1px;font-weight:600}
 .aboutgrid .sn{display:inline-flex;width:20px;height:20px;border-radius:50%;background:#1E88E5;align-items:center;justify-content:center;font-family:Barlow;font-weight:900;font-size:9pt;color:#fff;margin-right:6px}
 .notes3{margin:10px 0 0;padding:0;list-style:none} .notes3 li{font-size:9pt;color:#A6B6D6;padding:3px 0 3px 14px;position:relative} .notes3 li:before{content:"";position:absolute;left:0;top:10px;width:5px;height:5px;border-radius:50%;background:#8FA2C4}
 .reach{font-size:8.6pt;color:#A6B6D6;line-height:1.4;background:#0E1B3E;border-radius:8px;padding:6px 10px}
 .reach b{color:#ECF1FB;font-weight:600} .reach i{display:block;color:#ECF1FB;margin-top:3px}
 .reach.top{background:rgba(63,178,138,.12);color:#9FDCC4}
 table.sc td.c b{font-size:10pt} table.sc td.c small{font-size:7.8pt;color:#8FA2C4}
-table.q{width:100%;border-collapse:collapse;margin:8px 0 2px} table.q th{text-align:left;font-size:7.4pt;letter-spacing:1.2px;text-transform:uppercase;color:#8FA2C4;font-weight:600;padding:6px;border-bottom:1px solid rgba(170,195,240,.18)}
+table.q{width:100%;border-collapse:collapse;margin:8px 0 2px} table.q th{white-space:nowrap;text-align:left;font-size:7.4pt;letter-spacing:1.2px;text-transform:uppercase;color:#8FA2C4;font-weight:600;padding:6px;border-bottom:1px solid rgba(170,195,240,.18)}
 table.q td{padding:7px 6px;border-bottom:1px solid rgba(170,195,240,.10);font-size:9.2pt;vertical-align:middle} table.q td b{font-size:10pt} table.q td.qq{color:#ECF1FB;font-style:italic} table.q tr{break-inside:avoid} table.q td.st{white-space:nowrap;width:1%}
 """
 
@@ -741,8 +752,8 @@ def _facts(d):
                 f"Their message to the colleague: {x['messageText'][:1500]}\nTheir prompts: {x['prompts'][:2000]}")
     t = f"Number of exercises: {'two' if two else 'one'}\n\n"
     if two:
-        t += side_txt(d["pre"], "FIRST EXERCISE (BEFORE THE WORKSHOP)") + "\n\n"
-    t += side_txt(d["post"], "FINAL EXERCISE (AFTER THE WORKSHOP)" if two else "THE EXERCISE")
+        t += side_txt(d["pre"], "PRE-ASSESSMENT (BEFORE THE WORKSHOP)") + "\n\n"
+    t += side_txt(d["post"], "FINAL ASSESSMENT (AFTER THE WORKSHOP)" if two else "THE ASSESSMENT")
     if two:
         if _path_changed(d["pre"], d["post"]):
             t += "\n\nPATH CHANGED: they asked questions first in one exercise and went straight into the work in the other, so the message was judged on a different basis each time. Do not compare message scores between exercises. Compare prompting only, and mention the change of path itself."
@@ -752,7 +763,8 @@ def _facts(d):
 
 PROSE_SYSTEM = (
     "You write short, plain sections of a personal assessment report. "
-    "The workshop covered three skills: confirming the task (asking for the details a vague request leaves out), sharing information (briefing a colleague), and prompting AI (giving an AI tool what it needs). "
+    "The workshop covered three skills: confirming the task (checking your understanding and confirming the details before starting, from The Clarity Loop), sharing information (briefing a colleague clearly with the specific details, from The Clarity Loop), and prompting AI (giving the AI tool its role, context and task, the RCT framework). "
+    "Call the two exercises the pre-assessment and the final assessment. You may name The Clarity Loop or RCT where it genuinely helps. "
     "Always speak directly to the reader as you. Never use their name, and never describe them in the third person. "
     "Use short, everyday words and short sentences. Be specific about what they wrote, warm, and honest. "
     "Do not write any digits or scores. Describe change between exercises only as the criterion changes list states it, and never as a list. "
@@ -760,7 +772,7 @@ PROSE_SYSTEM = (
 
 PROSE_USER = (
     "Write these fields, keeping to the sentence limits:\n"
-    "snapshot: one sentence, under thirty words, summing up how you did in the most recent exercise.\n"
+    "snapshot: one sentence, under thirty words, summing up how you did. If there are two exercises it must start with the words In your final assessment.\n"
     "clarity: two sentences on which missing details you asked about and what leaving the others open would cost. If purpose was not asked, say so.\n"
     "handover: two sentences on your message to your colleague, pointing to one specific thing you wrote.\n"
     "directing_ai: two sentences on your prompts, starting with whether you told the tool what it cannot know.\n"
@@ -792,6 +804,8 @@ def _problem(p, two, first_name=""):
         return "third person instead of you"
     if len(p["snapshot"].split()) > 40:
         return "snapshot too long"
+    if two and not p["snapshot"].lower().startswith("in your final assessment"):
+        return "snapshot must start with In your final assessment"
     for m in p["moves"][:2]:
         if not isinstance(m, dict) or not m.get("title") or not m.get("body"):
             return "move missing title or body"
@@ -859,7 +873,7 @@ def _fallback_prose(d):
     lows = sorted([(post[sec][k], PRIORITY.index(k), sec, k) for sec, its in (("message", MSG), ("prompt", PR)) for k, _, _, _ in its if post[sec].get(k) is not None and k in PRIORITY])
     moves = []
     if not asked(post, "purpose"):
-        moves.append({"title": "Ask what the work is for", "body": "Knowing the purpose makes every other decision easier.", "try": "\u201c" + QUESTIONS["purpose"] + "\u201d"})
+        moves.append({"title": "Confirm the details before you start", "body": "Use The Clarity Loop to check your understanding, starting with what the work is for.", "try": "\u201cBefore I start, can I check what this is for, who it is for and when you need it?\u201d"})
     for v, _, sec, k in lows:
         if len(moves) >= 2:
             break
@@ -872,16 +886,18 @@ def _fallback_prose(d):
         lower = [c.split(", ", 1)[1].split(":")[0] for c in ch if "lower" in c]
         parts = []
         if _path_changed(pre, post):
-            parts.append("You asked questions first in one exercise and went straight in on the other, so your messages were scored differently.")
+            parts.append("You confirmed the details in one assessment and went straight in on the other, so your messages were scored differently.")
         if higher:
             parts.append("Your prompts improved on " + join(higher) + ".")
         if lower:
             parts.append("There is room to build back up on " + join(lower) + ".")
         ba = " ".join(parts)
     return {
-        "snapshot": "You went straight into the work this time, so the details that shape the task were left for others to guess." if went
-                    else "You asked questions before starting, which gave you a clearer picture of the work.",
-        "clarity": ("You did not ask about any of the missing details." if not asked_now else "You asked about " + join(asked_now) + ".")
+        "snapshot": (("In your final assessment, " if pre else "") + ("you went straight into the work without confirming the details, so key parts of the task were left for others to guess." if went
+                    else "you confirmed the details of the task before starting, which gave you a clearer picture of the work.")).capitalize() if not pre else
+                    ("In your final assessment, " + ("you went straight into the work without confirming the details, so key parts of the task were left for others to guess." if went
+                    else "you confirmed the details of the task before starting, which gave you a clearer picture of the work.")),
+        "clarity": ("In your final assessment, " if pre else "") + ("you did not confirm any of the missing details." if not asked_now else "you asked about " + join(asked_now) + ".") if pre else ("You did not confirm any of the missing details." if not asked_now else "You asked about " + join(asked_now) + ".")
                    + ((" Leaving " + join(open_now) + " open means someone has to guess them later.") if open_now else ""),
         "handover": "Your message is scored below, with what a top score looks like for each part.",
         "directing_ai": "Your prompts are scored below, starting with whether you told the AI tool what it cannot know.",
