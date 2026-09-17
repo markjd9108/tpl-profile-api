@@ -44,11 +44,12 @@ async def generate_assessment_report(request: Request):
     if not (fields.get("post_message") or fields.get("post_prompts")):
         raise HTTPException(status_code=422, detail="Final exercise answers are missing")
 
-    html, source, filename = await asyncio.to_thread(assessment_report.build_report, fields)
+    html, source, filename, reason = await asyncio.to_thread(assessment_report.build_report, fields)
     pdf = await _render_pdf(html)
     return Response(content=pdf, media_type="application/pdf", headers={
         "Content-Disposition": f'attachment; filename="{filename}"',
         "X-Report-Filename": filename,
         "X-Prose-Source": source,
+        "X-Prose-Error": "".join(ch for ch in reason if 32 <= ord(ch) < 127)[:200],
         "Cache-Control": "no-store",
     })
