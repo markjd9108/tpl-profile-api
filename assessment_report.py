@@ -32,7 +32,7 @@ MSG = [
 ]
 PR = [
  ("grounding", "Grounding", "Accounts for what the tool cannot know or verify.", "AI tools answer confidently even when they are wrong, so this matters most."),
- ("context", "Context", "Gives the tool enough background to work from.", "Without it, the tool fills gaps with generic guesses."),
+ ("context", "Context", "Gives the tool the context it needs: the situation, the reader and what it is for.", "Without it, the tool fills the gaps with generic guesses."),
  ("role", "Role", "Sets a relevant role for the tool.", "It sets the expertise and perspective of the answer."),
  ("task", "Task", "Defines the task, its scope and its boundary.", "It keeps the output on target."),
  ("output", "Output specification", "Sets the format, length, structure and ending.", "It gets you a usable draft first time."),
@@ -204,7 +204,7 @@ RUBRIC = {
 
 PLAIN = {"objective": "Goal", "audience": "Audience", "output": "Output shape", "signal": "What to leave out",
          "completion": "Test for done", "unresolved": "Open questions", "grounding": "What AI can't know",
-         "context": "Background", "role": "Role", "task": "Task", "constraints": "Limits"}
+         "context": "Context", "role": "Role", "task": "Task", "constraints": "Limits"}
 PLAIN_PROMPT = {"output": "Output shape"}
 
 QUESTIONS = {"scope": "Which ones should I cover, or how many?", "focus": "Which part matters most to you?",
@@ -379,7 +379,7 @@ WELL = {("message", "objective"): "Your message stated the goal and why it matte
         ("message", "completion"): "You gave a clear test for when it is done",
         ("message", "unresolved"): "You flagged what was still unknown",
         ("prompt", "grounding"): "You told the AI tool what it cannot know",
-        ("prompt", "context"): "You gave the AI tool useful background",
+        ("prompt", "context"): "You gave the AI tool the context it needed",
         ("prompt", "role"): "You gave the AI tool a clear role",
         ("prompt", "task"): "You defined the task and its limits",
         ("prompt", "output"): "You told the AI tool what shape to return",
@@ -391,7 +391,7 @@ FOCUS = {("message", "objective"): "State the goal and why it matters",
          ("message", "completion"): "Give a test for when it is done",
          ("message", "unresolved"): "Flag what is still unknown",
          ("prompt", "grounding"): "Tell the AI tool what it cannot know",
-         ("prompt", "context"): "Give the AI tool more background",
+         ("prompt", "context"): "Give the AI tool more context",
          ("prompt", "role"): "Give the AI tool a role",
          ("prompt", "task"): "Define the task and its limits",
          ("prompt", "output"): "Tell the AI tool what shape to return",
@@ -405,7 +405,7 @@ WELL2 = {("message", "objective"): "Your message stated the outcome",
          ("message", "completion"): "You hinted at when the work is done",
          ("message", "unresolved"): "You acknowledged something was still open",
          ("prompt", "grounding"): "You noted a limit of the AI tool",
-         ("prompt", "context"): "You gave the AI tool some background",
+         ("prompt", "context"): "You gave the AI tool some context",
          ("prompt", "role"): "You named a role for the AI tool",
          ("prompt", "task"): "You gave the task a clear scope",
          ("prompt", "output"): "You gave the output format and length",
