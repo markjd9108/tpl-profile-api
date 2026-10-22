@@ -247,11 +247,11 @@ class ComputeAveragesRequest(BaseModel):
     scores: List[ScoreEntry]
 
 # ── App ────────────────────────────────────────────────────────────────────────
-app = FastAPI(title="TEW Profile API", version="2.9.0")
+app = FastAPI(title="TEW Profile API", version="2.9.1")
 
 @app.get("/")
 def health():
-    return {"status": "ok", "version": "2.9.0",
+    return {"status": "ok", "version": "2.9.1",
             "archetypes": list(ARCHETYPE_FILES),
             "endpoints": ["/generate", "/generate-cohort", "/generate-manager-report",
                           "/generate-leader-report", "/compute-averages"]}

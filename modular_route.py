@@ -24,6 +24,9 @@ class ModularRequest(BaseModel):
     lens: Dict[str, float]
     games: List[ModularGame]
     feel: List[str]
+    feel_end: Optional[List[str]] = None
+    format: Optional[str] = None
+    skip_checks: Optional[bool] = False
     ws: List[str]
     text: Dict[str, Any]
 
@@ -41,6 +44,11 @@ def generate_modular(req: ModularRequest):
     import modular_profile
     if req.skill not in modular_profile.WS_DIM:
         raise HTTPException(400, f"unknown skill {req.skill}")
+    import profile_text_rules as RULES
+    if not req.skip_checks:
+        errs = RULES.check_text(req.text, req.participant_name.split()[0])
+        if errs:
+            raise HTTPException(422, {"message": "profile text failed the language rules", "errors": errs})
     payload = req.dict()
     payload["games"] = [g.dict() for g in req.games]
     try:

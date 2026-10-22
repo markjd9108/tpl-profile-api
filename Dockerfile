@@ -43,6 +43,7 @@ COPY assessment_fonts.json .
 # Modular one-skill hosted profiles
 COPY modular_profile.py .
 COPY modular_route.py .
+COPY profile_text_rules.py .
 COPY templates_modular/ ./templates_modular/
 
 # Copy HTML profile templates
