@@ -40,6 +40,10 @@ COPY capture_route.py .
 COPY assessment_report.py .
 COPY assessment_route.py .
 COPY assessment_fonts.json .
+# Modular one-skill hosted profiles
+COPY modular_profile.py .
+COPY modular_route.py .
+COPY templates_modular/ ./templates_modular/
 
 # Copy HTML profile templates
 COPY templates/ ./templates/

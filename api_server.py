@@ -247,11 +247,11 @@ class ComputeAveragesRequest(BaseModel):
     scores: List[ScoreEntry]
 
 # ── App ────────────────────────────────────────────────────────────────────────
-app = FastAPI(title="TEW Profile API", version="2.8.0")
+app = FastAPI(title="TEW Profile API", version="2.9.0")
 
 @app.get("/")
 def health():
-    return {"status": "ok", "version": "2.8.0",
+    return {"status": "ok", "version": "2.9.0",
             "archetypes": list(ARCHETYPE_FILES),
             "endpoints": ["/generate", "/generate-cohort", "/generate-manager-report",
                           "/generate-leader-report", "/compute-averages"]}
@@ -406,6 +406,13 @@ try:
     app.include_router(capture_router)
 except Exception as _cap_err:
     print("[capture_route] not loaded:", _cap_err)
+
+# Modular one-skill hosted profiles (/generate-modular)
+try:
+    from modular_route import modular_router
+    app.include_router(modular_router)
+except Exception as _mod_err:
+    print("[modular_route] not loaded:", _mod_err)
 
 # Soft Skills + AI Communication assessment report (PDF)
 try:
