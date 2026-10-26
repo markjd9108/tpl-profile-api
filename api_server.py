@@ -421,6 +421,13 @@ try:
 except Exception as _asr_err:
     print("[assessment_route] not loaded:", _asr_err)
 
+# University pilot Team Communication assessment (page, scoring, PDF report)
+try:
+    from comm_assessment_route import comm_router
+    app.include_router(comm_router)
+except Exception as _comm_err:
+    print("[comm_assessment_route] not loaded:", _comm_err)
+
 
 @app.post("/generate-hosted")
 def generate_hosted(req: ProfileRequest):

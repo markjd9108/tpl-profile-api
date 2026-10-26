@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team Communication Assessment | The Performance Lens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#040A1C;--card:#0A1530;--soft:#0E1B3E;--elev:#112349;--fg:#ECF1FB;--fg2:#A6B6D6;--fg3:#8FA2C4;--fg4:#5C719A;--line:rgba(170,195,240,.12);--line2:rgba(170,195,240,.22);--sky:#4AA1ED;--sky2:#1E88E5;--strong:#3FB28A;--em:#D9A04E;--err:#E8846A}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;font-size:16px;line-height:1.55}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:10px}.wm{font-family:Barlow,'Arial Narrow',Arial,sans-serif;line-height:.86}.wm .t{font-weight:700;font-size:9px;letter-spacing:1.4px;color:var(--sky)}.wm .n{font-weight:900;font-size:18px;letter-spacing:.3px}
+.timer{font-family:Barlow,'Arial Narrow',Arial,sans-serif;font-weight:900;font-size:22px;background:var(--soft);border:1px solid var(--line2);border-radius:10px;padding:4px 12px;display:none}
+.timer.low{color:var(--em);border-color:var(--em)}
+.eyebrow{font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:var(--fg3);font-weight:600}
+h1{font-family:Barlow,'Arial Narrow',Arial,sans-serif;font-weight:900;font-size:34px;line-height:1.05;margin:8px 0 10px}h1 em{font-style:normal;color:var(--sky)}
+h2{font-family:Barlow,'Arial Narrow',Arial,sans-serif;font-weight:900;font-size:24px;line-height:1.15;margin:6px 0 10px}
+p{margin:0 0 12px;color:var(--fg2)} p b,li b{color:var(--fg)}
+.card{background:var(--card);border:1px solid var(--line2);border-radius:16px;padding:20px;margin-bottom:16px}
+ul.dots{margin:0 0 12px;padding-left:20px;color:var(--fg2)} ul.dots li{margin:4px 0}
+label.f{display:block;font-size:14px;font-weight:600;margin:14px 0 6px}
+input[type=text],input[type=email],input[type=tel]{width:100%;font:inherit;color:var(--fg);background:var(--soft);border:1px solid var(--line2);border-radius:10px;padding:12px 14px}
+input:focus,textarea:focus{outline:2px solid var(--sky);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.row2{grid-template-columns:1fr}h1{font-size:28px}}
+.check{display:flex;gap:12px;align-items:flex-start;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0;cursor:pointer;color:var(--fg2);font-size:15px}
+.check input{margin-top:4px;width:18px;height:18px;flex:none;accent-color:var(--sky)}
+.check .tag{display:inline-block;font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:700;border-radius:99px;padding:1px 8px;margin-right:6px}
+.req{background:rgba(74,161,237,.16);color:#8CC4F4}.opt{background:rgba(170,195,240,.10);color:var(--fg3)}
+.btn{display:inline-block;font:inherit;font-weight:700;font-size:17px;color:#fff;background:var(--sky2);border:0;border-radius:999px;padding:13px 30px;cursor:pointer;margin-top:10px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--fg2)}
+.err{color:var(--err);font-size:14px;margin-top:8px;min-height:20px}
+.prog{height:6px;background:var(--soft);border-radius:99px;overflow:hidden;margin:6px 0 18px}.prog i{display:block;height:100%;background:var(--sky);width:0;transition:width .3s}
+.opt-btn{display:block;width:100%;text-align:left;font:inherit;font-size:16px;color:var(--fg);background:var(--soft);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;margin:10px 0;cursor:pointer;line-height:1.45}
+.opt-btn:hover{border-color:var(--sky)} .opt-btn.sel{border-color:var(--sky);background:rgba(74,161,237,.16)}
+.brief h3{font-family:Barlow,'Arial Narrow',Arial,sans-serif;font-weight:700;font-size:17px;margin:14px 0 6px;color:var(--fg)}
+.brief ul{margin:0;padding-left:20px;color:var(--fg2)} .brief li{margin:4px 0}
+.brief .unk{color:var(--em)}
+textarea{width:100%;min-height:230px;font:inherit;font-size:16px;color:var(--fg);background:var(--soft);border:1px solid var(--line2);border-radius:12px;padding:14px;resize:vertical;line-height:1.5}
+.wc{font-size:13px;color:var(--fg3);text-align:right;margin-top:4px}
+.banner{background:rgba(217,160,78,.14);border:1px solid var(--em);color:#F2D3A2;border-radius:12px;padding:10px 14px;margin:10px 0;display:none}
+.center{text-align:center}
+.big-ok{width:64px;height:64px;border-radius:50%;background:rgba(63,178,138,.18);display:flex;align-items:center;justify-content:center;margin:10px auto 14px;font-size:32px;color:#76CDAE}
+.hide{display:none}
+.code{font-family:Barlow,'Arial Narrow',Arial,sans-serif;font-weight:900;font-size:28px;letter-spacing:8px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="top">
+  <div class="brand"><svg width="34" height="34" viewBox="0 0 200 200"><circle cx="100" cy="100" r="86" fill="none" stroke="#ECF1FB" stroke-width="7"/><circle cx="100" cy="100" r="58" fill="none" stroke="#ECF1FB" stroke-width="10"/><circle cx="100" cy="100" r="30" fill="none" stroke="#4AA1ED" stroke-width="14"/><circle cx="100" cy="100" r="8" fill="#ECF1FB"/><g stroke="#ECF1FB" stroke-width="8" stroke-linecap="round"><line x1="100" y1="2" x2="100" y2="24"/><line x1="100" y1="176" x2="100" y2="198"/><line x1="2" y1="100" x2="24" y2="100"/><line x1="176" y1="100" x2="198" y2="100"/></g></svg>
+  <div class="wm"><div class="t">THE</div><div class="n">PERFORMANCE<br>LENS</div></div></div>
+  <div class="timer" id="timer">6:00</div>
+ </div>
+ <div id="app"></div>
+</div>
+<script>
+/*__CONFIG__*/
+(function(){
+var CFG = window.TPL_CFG, C = CFG.content;
+var qs = new URLSearchParams(location.search);
+var SITTING = (qs.get('sitting')||'pre').toLowerCase()==='post' ? 'post' : 'pre';
+var SCEN = SITTING==='post' ? 'B' : 'A';
+var CLASS = (qs.get('class')||'TEST').toUpperCase().replace(/[^A-Z0-9-]/g,'');
+var IDKEY = 'tpl_comm_id_'+CLASS, QKEY = 'tpl_comm_queue';
+var app = document.getElementById('app'), timerEl = document.getElementById('timer');
+var S = {answers:{}, t0:Date.now()};
+function ls(k,v){try{if(v===undefined){return JSON.parse(localStorage.getItem(k)||'null')}localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function view(h){app.innerHTML=h;window.scrollTo(0,0)}
+function emailOk(e){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)}
+
+function identityForm(withConsent){
+ return '<div class="row2"><div><label class="f">First name</label><input type="text" id="fn" autocomplete="given-name"></div>'+
+  '<div><label class="f">Last name</label><input type="text" id="ln" autocomplete="family-name"></div></div>'+
+  '<label class="f">Student email</label><input type="email" id="em" autocomplete="email" placeholder="you@university.edu">'+
+  (withConsent ? consentBlock() : '');
+}
+function consentBlock(){
+ return '<div style="margin-top:18px">'+
+  '<label class="check"><input type="checkbox" id="cr"><span><span class="tag req">Required</span>I agree to my answers being used to create my personal report.</span></label>'+
+  '<label class="check"><input type="checkbox" id="cs"><span><span class="tag opt">Optional</span>The Performance Lens and my university are studying how students build communication skills. I agree that my answers can be used for this research with my name and email removed. Choosing no has no effect on today\'s session.</span></label>'+
+  '<label class="f">Your age</label>'+
+  '<label class="check"><input type="radio" name="age" value="yes"><span>I am 18 or older</span></label>'+
+  '<label class="check"><input type="radio" name="age" value="no"><span>I am under 18</span></label></div>';
+}
+function readIdentity(withConsent){
+ var fn=document.getElementById('fn').value.trim(), ln=document.getElementById('ln').value.trim(), em=document.getElementById('em').value.trim().toLowerCase();
+ if(!fn||!ln) return 'Please enter your first and last name.';
+ if(!emailOk(em)) return 'Please enter a valid email address, so your report can reach you.';
+ var id={first_name:fn,last_name:ln,email:em};
+ if(withConsent){
+  if(!document.getElementById('cr').checked) return 'Please tick the required box to continue.';
+  var age=document.querySelector('input[name=age]:checked'); if(!age) return 'Please choose your age group.';
+  id.consent_report='yes'; id.consent_research=document.getElementById('cs').checked?'yes':'no'; id.age_18_plus=age.value;
+ }
+ return id;
+}
+
+// ---------- screens
+function welcome(){
+ view('<div class="eyebrow">Before the workshop</div><h1>Team <em>Communication</em></h1>'+
+  '<div class="card"><h2>Before you start</h2><p>This short exercise shows how you communicate in a team, before and after today\'s workshop. It takes about <b>10 minutes</b>.</p>'+
+  '<ul class="dots"><li>Your answers create your personal report, sent to your email.</li><li>Your results are private to you. Your university receives a class summary that names no one.</li><li>This exercise supports your learning and sits outside your grades.</li></ul></div>'+
+  '<div class="card">'+identityForm(true)+'<div class="err" id="er"></div><button class="btn" id="go">Start</button></div>');
+ document.getElementById('go').onclick=function(){
+  var id=readIdentity(true); if(typeof id==='string'){document.getElementById('er').textContent=id;return}
+  S.id=id; ls(IDKEY,id); quizIntro();
+ };
+}
+function codeScreen(){
+ view('<div class="eyebrow">End of the workshop</div><h1>Final <em>exercise</em></h1>'+
+  '<div class="card"><p>Enter the start code shown on the screen.</p><input type="tel" id="code" class="code" maxlength="6" inputmode="numeric" placeholder="____"><div class="err" id="er"></div><button class="btn" id="go">Continue</button></div>');
+ document.getElementById('go').onclick=function(){
+  if(document.getElementById('code').value.trim()!==String(CFG.startCode)){document.getElementById('er').textContent='That code does not match. Check the screen and try again.';return}
+  var id=ls(IDKEY);
+  if(id&&id.email){S.id=id; confirmId()} else postIdentity();
+ };
+}
+function confirmId(){
+ view('<div class="card"><h2>Welcome back, '+esc(S.id.first_name)+'</h2><p>Your report will go to <b>'+esc(S.id.email)+'</b>.</p><button class="btn" id="go">That\'s me, continue</button> <button class="btn ghost" id="no">Not me</button></div>');
+ document.getElementById('go').onclick=quizIntro;
+ document.getElementById('no').onclick=postIdentity;
+}
+function postIdentity(){
+ view('<div class="card"><h2>Your details</h2><p>Use the same email as at the start of the workshop, so both exercises appear in one report.</p>'+identityForm(true)+'<div class="err" id="er"></div><button class="btn" id="go">Continue</button></div>');
+ document.getElementById('go').onclick=function(){
+  var id=readIdentity(true); if(typeof id==='string'){document.getElementById('er').textContent=id;return}
+  S.id=id; ls(IDKEY,id); quizIntro();
+ };
+}
+function quizIntro(){
+ S.tq=Date.now();
+ view('<div class="eyebrow">Part 1 of 2</div><h1>Five quick <em>questions</em></h1><div class="card"><p>Each question describes a moment in a team project. Choose the response that works best. This part takes about <b>3 minutes</b>.</p><button class="btn" id="go">Begin</button></div>');
+ document.getElementById('go').onclick=function(){question(0)};
+}
+function question(i){
+ var list=C.quiz[SCEN], q=list[i], keys=shuffle(Object.keys(q.opts));
+ var h='<div class="eyebrow">Part 1 of 2 · Question '+(i+1)+' of '+list.length+'</div><div class="prog"><i style="width:'+((i)/list.length*100)+'%"></i></div>'+
+  '<div class="card"><h2>'+esc(q.q)+'</h2>';
+ keys.forEach(function(k){h+='<button class="opt-btn" data-k="'+k+'">'+esc(q.opts[k])+'</button>'});
+ h+='<div class="err" id="er"></div><button class="btn" id="go" disabled>Next</button></div>';
+ view(h);
+ var chosen=null;
+ Array.prototype.forEach.call(document.querySelectorAll('.opt-btn'),function(b){b.onclick=function(){
+  Array.prototype.forEach.call(document.querySelectorAll('.opt-btn'),function(x){x.classList.remove('sel')});
+  b.classList.add('sel'); chosen=b.getAttribute('data-k'); document.getElementById('go').disabled=false;}});
+ document.getElementById('go').onclick=function(){ if(!chosen)return; S.answers[q.id]=chosen; if(i+1<list.length) question(i+1); else { S.secs_quiz=Math.round((Date.now()-S.tq)/1000); workIntro(); } };
+}
+function workIntro(){
+ view('<div class="eyebrow">Part 2 of 2</div><h1>Write a <em>message</em></h1><div class="card"><p>You will read a short situation, then write one message to your teammates. You have <b>6 minutes</b>, and a timer shows how long is left.</p><p>Write it the way you would send it in a real group chat.</p><button class="btn" id="go">Show me the situation</button></div>');
+ document.getElementById('go').onclick=work;
+}
+var tick=null;
+function work(){
+ var sc=C.scenarios[SCEN];
+ var said=sc.said.map(function(s){return '<li>'+esc(s)+'</li>'}).join('');
+ var dec=sc.decided.map(function(s){return '<li'+(/^Still unknown/.test(s)?' class="unk"':'')+'>'+esc(s)+'</li>'}).join('');
+ view('<div class="eyebrow">Part 2 of 2</div><div class="card brief"><h2>Your situation</h2><p>'+esc(sc.situation)+'</p><h3>'+esc(sc.said_title)+'</h3><ul>'+said+'</ul><h3>What you decided</h3><ul>'+dec+'</ul></div>'+
+  '<div class="card"><h2>Your task</h2><p><b>'+esc(sc.task)+'</b></p><div class="banner" id="bn">Time is up. Finish your sentence and press Submit. Your message sends automatically in one minute.</div>'+
+  '<textarea id="msg" placeholder="Write your message here..."></textarea><div class="wc" id="wc">0 words</div><div class="err" id="er"></div><button class="btn" id="go">Submit</button></div>');
+ var ta=document.getElementById('msg'), draftKey='tpl_comm_draft_'+CLASS+'_'+SITTING;
+ var d=ls(draftKey); if(d) ta.value=d;
+ function wc(){var n=ta.value.trim()?ta.value.trim().split(/\s+/).length:0;document.getElementById('wc').textContent=n+' words';ls(draftKey,ta.value)}
+ ta.oninput=wc; wc();
+ S.tm=Date.now(); var total=360, grace=60; timerEl.style.display='block';
+ tick=setInterval(function(){
+  var left=total-Math.floor((Date.now()-S.tm)/1000);
+  if(left>0){var m=Math.floor(left/60),s=left%60;timerEl.textContent=m+':'+(s<10?'0':'')+s;timerEl.classList.toggle('low',left<=60)}
+  else {timerEl.textContent='0:00';document.getElementById('bn').style.display='block';if(left<=-grace){submit(true)}}
+ },500);
+ document.getElementById('go').onclick=function(){submit(false)};
+ function submit(auto){
+  var msg=ta.value.trim();
+  if(!auto && msg.split(/\s+/).filter(Boolean).length<5){document.getElementById('er').textContent='Please write your message before submitting.';return}
+  clearInterval(tick); timerEl.style.display='none';
+  S.message=msg; S.secs_message=Math.round((Date.now()-S.tm)/1000);
+  send(); try{localStorage.removeItem(draftKey)}catch(e){}
+ }
+}
+function payload(){
+ return {key:'K'+Date.now().toString(36)+Math.random().toString(36).slice(2,8), submitted_at:new Date().toISOString(), sitting:SITTING, class_code:CLASS, scenario:SCEN,
+  first_name:S.id.first_name,last_name:S.id.last_name,email:S.id.email,consent_report:S.id.consent_report||'yes',consent_research:S.id.consent_research||'no',age_18_plus:S.id.age_18_plus||'',
+  answers:S.answers, q1:S.answers.q1||'',q2:S.answers.q2||'',q3:S.answers.q3||'',q4:S.answers.q4||'',q5:S.answers.q5||'',
+  message:S.message, secs_quiz:S.secs_quiz, secs_message:S.secs_message};
+}
+function post(p,tries){
+ return fetch(CFG.submitUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return true})
+ .catch(function(e){if(tries>1)return new Promise(function(res){setTimeout(res,1500)}).then(function(){return post(p,tries-1)});throw e});
+}
+function send(){
+ var p=payload(); var q=ls(QKEY)||[]; q.push(p); ls(QKEY,q);
+ view('<div class="card center"><h2>Sending your answers...</h2><p>Please keep this page open.</p></div>');
+ post(p,3).then(function(){ var q2=(ls(QKEY)||[]).filter(function(x){return x.key!==p.key}); ls(QKEY,q2); done(); })
+ .catch(function(){
+  view('<div class="card center"><h2>Your answers are saved on this device</h2><p>The connection dropped while sending. Press the button to try again, or tell your facilitator.</p><button class="btn" id="rt">Try again</button></div>');
+  document.getElementById('rt').onclick=function(){ post(p,3).then(function(){ls(QKEY,(ls(QKEY)||[]).filter(function(x){return x.key!==p.key}));done()}).catch(function(){alertMsg()}) };
+ });
+}
+function alertMsg(){var e=document.querySelector('.card p');if(e)e.textContent='Still unable to send. Your answers are safe on this device. Please show this screen to your facilitator.'}
+function done(){
+ if(SITTING==='pre') view('<div class="card center"><div class="big-ok">&#10003;</div><h2>Thank you, that\'s it for now</h2><p>Enjoy the workshop. At the end of the session you will do a similar exercise, and then your personal report arrives by email.</p></div>');
+ else view('<div class="card center"><div class="big-ok">&#10003;</div><h2>Thank you, '+esc(S.id.first_name)+'</h2><p>Your personal report is on its way to <b>'+esc(S.id.email)+'</b> and usually arrives within a few minutes. If it is not in your inbox, check your spam folder.</p></div>');
+}
+// facilitator recovery: ?recover=1 resends anything still queued on this device
+if(qs.get('recover')==='1'){
+ var q=ls(QKEY)||[];
+ view('<div class="card"><h2>Saved submissions on this device</h2><p>'+q.length+' waiting to send.</p><button class="btn" id="rs"'+(q.length?'':' disabled')+'>Send them now</button><div class="err" id="er"></div></div>');
+ document.getElementById('rs').onclick=function(){Promise.all(q.map(function(p){return post(p,3).then(function(){return p.key}).catch(function(){return null})})).then(function(ks){var left=q.filter(function(p){return ks.indexOf(p.key)<0});ls(QKEY,left);document.getElementById('er').textContent=(q.length-left.length)+' sent, '+left.length+' still waiting.'})};
+} else if(SITTING==='post') codeScreen(); else welcome();
+})();
+</script>
+</body>
+</html>

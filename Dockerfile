@@ -40,6 +40,10 @@ COPY capture_route.py .
 COPY assessment_report.py .
 COPY assessment_route.py .
 COPY assessment_fonts.json .
+# University pilot Team Communication assessment (page, scoring, PDF report)
+COPY comm_assessment.py .
+COPY comm_assessment_route.py .
+COPY comm_assessment_app.html .
 # Modular one-skill hosted profiles
 COPY modular_profile.py .
 COPY modular_route.py .
