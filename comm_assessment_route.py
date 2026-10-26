@@ -14,7 +14,7 @@ import comm_assessment as CA
 comm_router = APIRouter()
 _HERE = os.path.dirname(os.path.abspath(__file__))
 SUBMIT_URL = os.environ.get("COMM_SUBMIT_URL", "https://hook.eu2.make.com/x3lu1zjxno1t4bk469bl1wuux8dezxeg")
-START_CODE = os.environ.get("COMM_START_CODE", "8888")
+START_CODE = os.environ.get("COMM_START_CODE", "1234")
 
 
 async def _fields(request: Request):
