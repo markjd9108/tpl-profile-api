@@ -247,11 +247,11 @@ class ComputeAveragesRequest(BaseModel):
     scores: List[ScoreEntry]
 
 # ── App ────────────────────────────────────────────────────────────────────────
-app = FastAPI(title="TEW Profile API", version="2.9.1")
+app = FastAPI(title="TEW Profile API", version="2.10.0")
 
 @app.get("/")
 def health():
-    return {"status": "ok", "version": "2.9.1",
+    return {"status": "ok", "version": "2.10.0",
             "archetypes": list(ARCHETYPE_FILES),
             "endpoints": ["/generate", "/generate-cohort", "/generate-manager-report",
                           "/generate-leader-report", "/compute-averages"]}
@@ -304,14 +304,54 @@ def asset_tlw_field_guide():
 
 @app.get("/samples")
 def sample_profile_library():
-    """Shareable index of the twelve sample participant profiles, one per
-    archetype. Unlisted rather than secret: safe to send to a colleague or a
-    prospect, but kept out of search."""
+    """Shareable sample library: one modular participant profile per skill plus
+    the sample Leadership Insight Report. Unlisted rather than secret: safe to
+    send to a colleague or a prospect, but kept out of search."""
     path = os.path.join(_ASSETS_DIR, "sample_profiles.html")
     if not os.path.exists(path):
         raise HTTPException(404, "sample profile library not found")
     return FileResponse(path, media_type="text/html",
-                        headers={"Cache-Control": "public, max-age=3600",
+                        headers={"Cache-Control": "public, max-age=600",
+                                 "X-Robots-Tag": "noindex, nofollow"})
+
+# Modular sample profiles listed on /samples (invented people, Sample Company Ltd.).
+# Each key maps to the profile_id used when the sample was posted to /generate-modular,
+# so the link survives regeneration (same profile_id, same slug).
+SAMPLE_MODULAR = {
+    "communication":       ("Communication",       "TPL-SAMPLE-MOD-01"),
+    "decision-making":     ("Decision Making",     "TPL-SAMPLE-MOD-02"),
+    "collaboration":       ("Collaboration",       "TPL-SAMPLE-MOD-03"),
+    "leadership":          ("Leadership",          "TPL-SAMPLE-MOD-04"),
+    "change-management":   ("Change Management",   "TPL-SAMPLE-MOD-05"),
+    "conflict-management": ("Conflict Management", "TPL-SAMPLE-MOD-06"),
+}
+
+@app.get("/samples/profile/{key}")
+def sample_modular_profile(key: str):
+    """Stable, readable link to a modular sample profile. Serves the hosted page directly."""
+    if key not in SAMPLE_MODULAR:
+        raise HTTPException(404, "Sample not found")
+    skill, pid = SAMPLE_MODULAR[key]
+    idx_path = os.path.join(PROFILE_STORE_DIR, "_index.json")
+    try:
+        index = json.load(open(idx_path, encoding="utf-8"))
+    except Exception:
+        index = {}
+    slug = index.get(f"modular:{skill}:{pid}")
+    path = os.path.join(PROFILE_STORE_DIR, f"{slug}.html") if slug else ""
+    if not slug or not os.path.exists(path):
+        raise HTTPException(404, "Sample not generated yet")
+    return HTMLResponse(content=open(path, encoding="utf-8").read(), headers={
+        "X-Robots-Tag": "noindex, nofollow", "Cache-Control": "public, max-age=600"})
+
+@app.get("/sample/leadership-insight-report")
+def sample_leadership_insight_report():
+    """Sample Leadership Insight Report (invented team, static HTML) for prospects and clients."""
+    path = os.path.join(_ASSETS_DIR, "lir_sample.html")
+    if not os.path.exists(path):
+        raise HTTPException(404, "sample report not found")
+    return FileResponse(path, media_type="text/html",
+                        headers={"Cache-Control": "public, max-age=600",
                                  "X-Robots-Tag": "noindex, nofollow"})
 
 @app.get("/sample/leadership-dashboard")

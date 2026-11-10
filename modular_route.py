@@ -46,7 +46,7 @@ def generate_modular(req: ModularRequest):
         raise HTTPException(400, f"unknown skill {req.skill}")
     import profile_text_rules as RULES
     if not req.skip_checks:
-        errs = RULES.check_text(req.text, req.participant_name.split()[0])
+        errs = RULES.check_text(req.text, req.participant_name.split()[0], skill_steps=modular_profile.skill_steps(req.skill))
         if errs:
             raise HTTPException(422, {"message": "profile text failed the language rules", "errors": errs})
     payload = req.dict()

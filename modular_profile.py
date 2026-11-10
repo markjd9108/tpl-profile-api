@@ -76,6 +76,104 @@ STRONG = {
   ],
   foot='<b>In one line:</b> confirm understanding before the work starts, not after it comes back wrong.'),
 }
+# The other five skills, added 10 Nov 2026 (same three-step shape as Communication).
+STRONG.update({
+ 'Decision Making': dict(
+  title='A strong decision maker, from start to finish',
+  intro='This is what strong decision making looks like at work. It follows the three steps of the Decision Engine. Each step includes how you act, how you plan and how you react.',
+  steps=[
+   ('Define', 'Before choosing anything', [
+     'Agrees with others what the decision must achieve and what they are willing to trade.',
+     'Names the criteria that matter most before looking at the options.',
+     'Stays open when others see the goal differently, and settles it before moving on.']),
+   ('Discover', 'While the options are compared', [
+     'Separates what is known from what is assumed, and says which is which.',
+     'Goes and gets the missing information that would change the choice.',
+     'Stays patient with uncertainty instead of rushing to an answer to end it.']),
+   ('Decide', 'When it is time to commit', [
+     'Commits fully with the team and does not reopen the choice without new information.',
+     'Agrees who acts, by when, and when the decision will be reviewed.',
+     'Stays steady when a decision proves imperfect, and adjusts at the agreed review.']),
+  ],
+  foot='<b>In one line:</b> agree what you are solving for, test what you know, then commit together.'),
+ 'Collaboration': dict(
+  title='A strong collaborator, from start to finish',
+  intro='This is what strong collaboration looks like at work. It follows the three steps of the Collaboration Reset. Each step includes how you act, how you plan and how you react.',
+  steps=[
+   ('Share', 'At the start of shared work', [
+     'Says what they know early, even when it seems obvious.',
+     'Asks others what they hold before the plan is set.',
+     'Is comfortable saying what they do not know.']),
+   ('Sync', 'As the work comes together', [
+     'Agrees with others how the separate parts will fit before they join.',
+     'Checks progress across the team, not only on their own part.',
+     'Raises a mismatch as soon as they see it, calmly and without blame.']),
+   ('Support', 'Until the whole job is done', [
+     'Steps in to help a teammate who is stuck.',
+     'Shares control and lets others lead where they are better placed.',
+     'Measures success by the team result, not only by their own part.']),
+  ],
+  foot='<b>In one line:</b> share early, agree how the parts fit, and finish together.'),
+ 'Leadership': dict(
+  title='A strong leader, from start to finish',
+  intro='This is what strong leadership looks like at work. It follows the three steps of the Intent Line. Each step includes how you act, how you plan and how you react.',
+  steps=[
+   ('Aim', 'Before the first instruction', [
+     'Explains what done looks like and why it matters.',
+     'Shares the purpose so people can make good choices on their own.',
+     'Stays clear and steady about the goal when the plan changes.']),
+   ('Align', 'Before the work moves', [
+     'Checks that everyone has the same picture of the goal.',
+     'Gives everyone the same message and confirms it was understood the same way.',
+     'Notices early when people are moving in different directions, and resets.']),
+   ('Ask', 'While the work progresses', [
+     'Uses questions to draw out thinking instead of giving every answer.',
+     'Listens to the answer before adding their own view.',
+     'Gives people room to solve problems, and supports them when they are stuck.']),
+  ],
+  foot='<b>In one line:</b> set the aim, check everyone shares it, and lead with questions.'),
+ 'Change Management': dict(
+  title='A strong change navigator, from start to finish',
+  intro='This is what strong change management looks like at work. It follows the three steps of the Change Path. Each step includes how you act, how you plan and how you react.',
+  steps=[
+   ('Pause', 'When something changes', [
+     'Stops and names what has changed before anyone reacts.',
+     'Takes stock of what still works and what no longer does.',
+     'Stays composed, and helps others stay composed.']),
+   ('Plan', 'Before moving anything', [
+     'Looks at the whole picture before taking anything apart.',
+     'Maps the steps from where things are now to where they need to be.',
+     'Expects a difficult middle stage and plans for it.']),
+   ('Pivot', 'As the new way begins', [
+     'Moves to the new way of working together with others, not alone.',
+     'Agrees the new way out loud, so no one is left behind.',
+     'Lets go of the old way and supports others who find the change harder.']),
+  ],
+  foot='<b>In one line:</b> pause and name the change, plan the route, then move together.'),
+ 'Conflict Management': dict(
+  title='A strong conflict manager, from start to finish',
+  intro='This is what strong conflict management looks like at work. It follows the three steps of the Resolution Loop. Each step includes how you act, how you plan and how you react.',
+  steps=[
+   ('Notice', 'Early, before it grows', [
+     'Spots the moment two views stop matching.',
+     'Checks plans and instructions for anything that contradicts.',
+     'Is aware of their own reaction when they disagree.']),
+   ('Name', 'When views differ', [
+     'Says the disagreement out loud, about the work and not the person.',
+     'Explains the reason before acting on the disagreement.',
+     'Stays respectful when their own work is questioned.']),
+   ('Negotiate', 'Until there is one way forward', [
+     'Looks for an option both sides can commit to.',
+     'Listens to understand the other view before defending their own.',
+     'Commits to the agreed way forward and does not reopen it.']),
+  ],
+  foot='<b>In one line:</b> notice it early, name it about the work, and agree one way forward.'),
+})
+
+def skill_steps(skill):
+    """Framework step names for a skill, used by the text rules check."""
+    return tuple(x[0] for x in STRONG[skill]['steps']) if skill in STRONG else ('Clarify', 'Check', 'Confirm')
+
 def strong_block(skill):
     S_ = STRONG[skill]
     steps = ''.join(
