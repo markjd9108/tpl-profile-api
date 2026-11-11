@@ -8,7 +8,7 @@ import re
 LENGTHS = {
     'line': (15, 35), 'lead': (45, 90), 'strength_h': (3, 8), 'strength_p': (35, 80),
     'growth_h': (3, 8), 'growth_p': (35, 80), 'bullet': (10, 26), 'side': (15, 42),
-    'game': (20, 60), 'journey': (45, 95), 'move_h': (3, 8), 'move_p': (20, 48),
+    'game': (20, 60), 'journey': (45, 95), 'move_h': (3, 8), 'move_p': (20, 48), 'habit': (10, 30),
 }
 MAX_SENTENCE_WORDS = 22
 MAX_AVG_SENTENCE_WORDS = 16
@@ -56,6 +56,7 @@ def check_text(T, first_name='', allow_game_words=('games',), skill_steps=('Clar
     slots += [('bullet', b) for b in T['bullets']] + [('side', v) for v in T['sides'].values()]
     slots += [('move_h', m[0]) for m in T['moves']] + [('move_p', m[1]) for m in T['moves']]
     games = [('game', g) for g in T['games'] if g]
+    if T.get('habit'): slots.append(('habit', T['habit']))
     for slot, s in slots + games:
         tag = f'[{slot}] {s[:50]}'
         n = len(words(s)); lo, hi = LENGTHS[slot]
@@ -86,6 +87,7 @@ def check_text(T, first_name='', allow_game_words=('games',), skill_steps=('Clar
                 if p in s.lower() and not (p == 'confident' and slot in ('game', 'bullet', 'lead', 'line', 'strength_p', 'side')) and not (p == 'calm' and slot in ('game', 'side', 'strength_p')):
                     errs.append(f'feeling word "{p}" outside the journey: {tag}')
     # structure rules
+    if T.get('habit') and not T['habit'].startswith('When '): errs.append('habit must start with "When "')
     if not T['strength_h'].lower().startswith('you'): errs.append('strength heading must start with "You"')
     for w in ['but ', 'however', 'although', 'tend to']:
         if w in T['strength_p'].lower(): errs.append(f'strength paragraph must be praise only, found "{w.strip()}"')

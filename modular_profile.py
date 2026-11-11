@@ -357,5 +357,26 @@ def render(p):
         mv = mv.replace(h3s[i], f'<h3 class="display text-[20px] leading-[1.18] mb-3">{e(h)}</h3>')
         mv = mv.replace(ps[i], f'<p class="text-[13.5px] text-[var(--fg-2)] leading-[1.65]">{e(p)}</p>')
     t = t[:ms] + mv + t[me:]
+    # ---------- make it stick (habit card, added 11 Nov 2026) ----------
+    i = t.index('<section id="sec-moves"'); j = t.index('</section>', i)
+    t = t[:j] + stick_block(T.get('habit')) + t[j:]
+    t = t.replace('</head>', STICK_CSS + '</head>', 1)
     return t
+
+STICK_CSS = '<style>.sl-step li.ms-quote{font-style:italic;color:#fff;padding-left:12px;border-left:3px solid #34D399}.sl-step li.ms-quote::before{display:none}</style>'
+
+def stick_block(habit):
+    """Behaviour change card: an if-then plan, weekly practice and a supporter (implementation intentions,
+    spaced practice, social support). Shown under the three moves."""
+    plan = ('<li>Write one sentence that links your growth step to a moment at work.</li>'
+            + (f'<li class="ms-quote">{e(habit)}</li>' if habit else '<li>Use the form: when this happens at work, I will do this.</li>'))
+    steps = [('Plan it', 'Link it to a moment', plan),
+             ('Practise it', 'Every week', '<li>Use it at least once a week for the next two months.</li><li>New habits take around two months to feel natural, so keep going when it feels slow.</li>'),
+             ('Share it', 'With someone you trust', '<li>Tell your manager or a colleague what you are working on.</li><li>Ask them to point it out when they see you do it.</li>')]
+    body = ''.join(f'<div class="sl-step"><div class="sl-head"><span class="sl-num">{k+1}</span><span class="sl-name">{e(n)}<span class="sl-when">{e(w)}</span></span></div><ul>{x}</ul></div>'
+                   for k, (n, w, x) in enumerate(steps))
+    return ('\n      <article class="card sl-card"><div class="eyebrow mb-2">Make it stick</div>'
+            '<h3 class="sl-title">Turn your growth step into a habit</h3>'
+            '<p class="sl-intro">One session starts the change. Small actions repeated at work make it last.</p>'
+            f'<div class="sl-steps">{body}</div><p class="sl-foot"><b>One habit at a time:</b> make this one routine before you add another.</p></article>\n')
 
