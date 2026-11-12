@@ -247,11 +247,11 @@ class ComputeAveragesRequest(BaseModel):
     scores: List[ScoreEntry]
 
 # ── App ────────────────────────────────────────────────────────────────────────
-app = FastAPI(title="TEW Profile API", version="2.11.0")
+app = FastAPI(title="TEW Profile API", version="2.11.1")
 
 @app.get("/")
 def health():
-    return {"status": "ok", "version": "2.11.0",
+    return {"status": "ok", "version": "2.11.1",
             "archetypes": list(ARCHETYPE_FILES),
             "endpoints": ["/generate", "/generate-cohort", "/generate-manager-report",
                           "/generate-leader-report", "/compute-averages"]}
@@ -355,24 +355,77 @@ def sample_leadership_insight_report():
                                  "X-Robots-Tag": "noindex, nofollow"})
 
 # ── Internal tools (password protected) ──────────────────────────────────────
-# Pricing is internal-only, so team tools sit behind HTTP Basic auth.
-# Set TOOLS_PASSWORD on Railway. Any username works; only the password is checked.
-# If TOOLS_PASSWORD is not set, the tools stay closed.
-from fastapi import Depends
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-_tools_auth = HTTPBasic(realm="The Performance Lens team tools")
+# Pricing is internal-only, so team tools sit behind one shared password.
+# Set TOOLS_PASSWORD on Railway. A small branded page asks for the password only;
+# a correct entry sets a cookie that lasts 30 days. If TOOLS_PASSWORD is not set,
+# the tools stay closed.
+import hmac, hashlib, urllib.parse
+from fastapi import Request
+from fastapi.responses import RedirectResponse
 
-def _require_tools_password(creds: HTTPBasicCredentials = Depends(_tools_auth)):
+_TOOLS_COOKIE = "tpl_tools"
+
+def _tools_token(pw: str) -> str:
+    return hmac.new(pw.encode("utf-8"), b"tpl-team-tools-v1", hashlib.sha256).hexdigest()
+
+def _tools_ok(request: Request) -> bool:
+    expected = os.environ.get("TOOLS_PASSWORD", "")
+    got = request.cookies.get(_TOOLS_COOKIE, "")
+    return bool(expected) and secrets.compare_digest(got, _tools_token(expected))
+
+def _tools_login_page(next_path: str, error: bool = False) -> HTMLResponse:
+    msg = '<p class="err">That password is not right. Please try again.</p>' if error else ""
+    nxt = urllib.parse.quote(next_path, safe="/")
+    html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Team tools · The Performance Lens</title>
+<style>
+body{{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0D2A66;font-family:-apple-system,BlinkMacSystemFont,'Inter',Segoe UI,sans-serif;}}
+.card{{background:#fff;border-radius:16px;padding:40px 36px;width:100%;max-width:360px;box-shadow:0 16px 48px rgba(0,0,0,.25);}}
+.eyebrow{{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#1E88E5;margin:0 0 8px;}}
+h1{{font-size:24px;line-height:1.2;color:#0D2A66;margin:0 0 24px;}}
+label{{display:block;font-size:12px;font-weight:600;color:#64708A;margin-bottom:6px;}}
+input{{width:100%;box-sizing:border-box;font-size:16px;padding:12px 14px;border:1px solid #DCE4EE;border-radius:8px;background:#F7F9FC;}}
+input:focus{{outline:none;border-color:#1E88E5;box-shadow:0 0 0 3px rgba(30,136,229,.3);}}
+button{{margin-top:18px;width:100%;font-size:15px;font-weight:700;color:#fff;background:#1E88E5;border:0;border-radius:999px;padding:12px;cursor:pointer;}}
+button:hover{{background:#1A78CE;}}
+.err{{color:#C0392B;font-size:13px;font-weight:600;margin:0 0 14px;}}
+</style></head><body>
+<form class="card" method="post" action="/tools/login?next={nxt}">
+<p class="eyebrow">The Performance Lens</p>
+<h1>Team tools</h1>
+{msg}
+<label for="pw">Team password</label>
+<input id="pw" name="password" type="password" autocomplete="current-password" autofocus required>
+<button type="submit">Open</button>
+</form></body></html>"""
+    return HTMLResponse(html, status_code=401 if error else 200,
+                        headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow"})
+
+@app.post("/tools/login")
+async def tools_login(request: Request, next: str = "/tools/proposal"):
+    if not next.startswith("/tools/"):
+        next = "/tools/proposal"
     expected = os.environ.get("TOOLS_PASSWORD", "")
     if not expected:
         raise HTTPException(503, "Team tools are not configured yet")
-    if not secrets.compare_digest(creds.password.encode("utf-8"), expected.encode("utf-8")):
-        raise HTTPException(401, "Incorrect password", headers={"WWW-Authenticate": 'Basic realm="The Performance Lens team tools"'})
-    return True
+    form = urllib.parse.parse_qs((await request.body()).decode("utf-8", "replace"))
+    pw = (form.get("password") or [""])[0]
+    if not secrets.compare_digest(pw.encode("utf-8"), expected.encode("utf-8")):
+        return _tools_login_page(next, error=True)
+    resp = RedirectResponse(next, status_code=303)
+    resp.set_cookie(_TOOLS_COOKIE, _tools_token(expected), max_age=60 * 60 * 24 * 30,
+                    httponly=True, secure=True, samesite="lax", path="/tools")
+    return resp
 
 @app.get("/tools/proposal")
-def proposal_builder(_: bool = Depends(_require_tools_password)):
+def proposal_builder(request: Request):
     """Proposal builder for facilitators. VND pricing, internal only."""
+    if not os.environ.get("TOOLS_PASSWORD", ""):
+        raise HTTPException(503, "Team tools are not configured yet")
+    if not _tools_ok(request):
+        return _tools_login_page("/tools/proposal")
     path = os.path.join(_ASSETS_DIR, "proposal_builder.html")
     if not os.path.exists(path):
         raise HTTPException(404, "proposal builder not found")
