@@ -354,6 +354,16 @@ def sample_leadership_insight_report():
                         headers={"Cache-Control": "public, max-age=600",
                                  "X-Robots-Tag": "noindex, nofollow"})
 
+@app.get("/sample/team-performance-snapshot")
+def sample_team_performance_snapshot():
+    """Sample Team Performance Snapshot (Focused Session leader report, invented team, static HTML)."""
+    path = os.path.join(_ASSETS_DIR, "team_snapshot_sample.html")
+    if not os.path.exists(path):
+        raise HTTPException(404, "sample snapshot not found")
+    return FileResponse(path, media_type="text/html",
+                        headers={"Cache-Control": "public, max-age=600",
+                                 "X-Robots-Tag": "noindex, nofollow"})
+
 # ── Team tools: Google sign-in and the proposal repository (tools_route.py) ──
 import tools_route
 app.include_router(tools_route.router)
