@@ -247,11 +247,11 @@ class ComputeAveragesRequest(BaseModel):
     scores: List[ScoreEntry]
 
 # ── App ────────────────────────────────────────────────────────────────────────
-app = FastAPI(title="TEW Profile API", version="2.10.1")
+app = FastAPI(title="TEW Profile API", version="2.11.0")
 
 @app.get("/")
 def health():
-    return {"status": "ok", "version": "2.10.1",
+    return {"status": "ok", "version": "2.11.0",
             "archetypes": list(ARCHETYPE_FILES),
             "endpoints": ["/generate", "/generate-cohort", "/generate-manager-report",
                           "/generate-leader-report", "/compute-averages"]}
@@ -352,6 +352,32 @@ def sample_leadership_insight_report():
         raise HTTPException(404, "sample report not found")
     return FileResponse(path, media_type="text/html",
                         headers={"Cache-Control": "public, max-age=600",
+                                 "X-Robots-Tag": "noindex, nofollow"})
+
+# ── Internal tools (password protected) ──────────────────────────────────────
+# Pricing is internal-only, so team tools sit behind HTTP Basic auth.
+# Set TOOLS_PASSWORD on Railway. Any username works; only the password is checked.
+# If TOOLS_PASSWORD is not set, the tools stay closed.
+from fastapi import Depends
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+_tools_auth = HTTPBasic(realm="The Performance Lens team tools")
+
+def _require_tools_password(creds: HTTPBasicCredentials = Depends(_tools_auth)):
+    expected = os.environ.get("TOOLS_PASSWORD", "")
+    if not expected:
+        raise HTTPException(503, "Team tools are not configured yet")
+    if not secrets.compare_digest(creds.password.encode("utf-8"), expected.encode("utf-8")):
+        raise HTTPException(401, "Incorrect password", headers={"WWW-Authenticate": 'Basic realm="The Performance Lens team tools"'})
+    return True
+
+@app.get("/tools/proposal")
+def proposal_builder(_: bool = Depends(_require_tools_password)):
+    """Proposal builder for facilitators. VND pricing, internal only."""
+    path = os.path.join(_ASSETS_DIR, "proposal_builder.html")
+    if not os.path.exists(path):
+        raise HTTPException(404, "proposal builder not found")
+    return FileResponse(path, media_type="text/html",
+                        headers={"Cache-Control": "no-store",
                                  "X-Robots-Tag": "noindex, nofollow"})
 
 @app.get("/sample/leadership-dashboard")
