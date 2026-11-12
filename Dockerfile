@@ -34,6 +34,7 @@ COPY lir_render.py .
 COPY lir_composition_spec.md .
 COPY lir_template_wired.html .
 COPY api_server.py .
+COPY tools_route.py .
 # Between-sessions curriculum capture page route
 COPY capture_route.py .
 # Soft Skills + AI Communication assessment report (PDF)
