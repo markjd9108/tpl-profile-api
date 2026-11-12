@@ -247,11 +247,11 @@ class ComputeAveragesRequest(BaseModel):
     scores: List[ScoreEntry]
 
 # ── App ────────────────────────────────────────────────────────────────────────
-app = FastAPI(title="TEW Profile API", version="2.11.1")
+app = FastAPI(title="TEW Profile API", version="2.11.2")
 
 @app.get("/")
 def health():
-    return {"status": "ok", "version": "2.11.1",
+    return {"status": "ok", "version": "2.11.2",
             "archetypes": list(ARCHETYPE_FILES),
             "endpoints": ["/generate", "/generate-cohort", "/generate-manager-report",
                           "/generate-leader-report", "/compute-averages"]}
@@ -364,6 +364,8 @@ from fastapi import Request
 from fastapi.responses import RedirectResponse
 
 _TOOLS_COOKIE = "tpl_tools"
+# One password covers every team tool; each tool gets its own title on the login page.
+_TOOL_TITLES = {"/tools/proposal": "Proposal Generator"}
 
 def _tools_token(pw: str) -> str:
     return hmac.new(pw.encode("utf-8"), b"tpl-team-tools-v1", hashlib.sha256).hexdigest()
@@ -376,14 +378,15 @@ def _tools_ok(request: Request) -> bool:
 def _tools_login_page(next_path: str, error: bool = False) -> HTMLResponse:
     msg = '<p class="err">That password is not right. Please try again.</p>' if error else ""
     nxt = urllib.parse.quote(next_path, safe="/")
+    title = _TOOL_TITLES.get(next_path, "Team tools")
     html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Team tools · The Performance Lens</title>
+<title>{title} · The Performance Lens</title>
 <style>
 body{{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0D2A66;font-family:-apple-system,BlinkMacSystemFont,'Inter',Segoe UI,sans-serif;}}
 .card{{background:#fff;border-radius:16px;padding:40px 36px;width:100%;max-width:360px;box-shadow:0 16px 48px rgba(0,0,0,.25);}}
-.eyebrow{{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#1E88E5;margin:0 0 8px;}}
+.logo{{display:block;height:44px;width:auto;margin:0 0 28px;}}
 h1{{font-size:24px;line-height:1.2;color:#0D2A66;margin:0 0 24px;}}
 label{{display:block;font-size:12px;font-weight:600;color:#64708A;margin-bottom:6px;}}
 input{{width:100%;box-sizing:border-box;font-size:16px;padding:12px 14px;border:1px solid #DCE4EE;border-radius:8px;background:#F7F9FC;}}
@@ -393,8 +396,8 @@ button:hover{{background:#1A78CE;}}
 .err{{color:#C0392B;font-size:13px;font-weight:600;margin:0 0 14px;}}
 </style></head><body>
 <form class="card" method="post" action="/tools/login?next={nxt}">
-<p class="eyebrow">The Performance Lens</p>
-<h1>Team tools</h1>
+<img class="logo" src="/assets/tpl-logo" alt="The Performance Lens">
+<h1>{title}</h1>
 {msg}
 <label for="pw">Team password</label>
 <input id="pw" name="password" type="password" autocomplete="current-password" autofocus required>
